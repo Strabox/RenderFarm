@@ -1,2 +1,2 @@
 # RenderFarm
-Project to Cloud Computing and Virtualization @ Instituto Superior Técnio
+Project to Cloud Computing and Virtualization course @ Instituto Superior Técnio
