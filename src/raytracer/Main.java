@@ -64,7 +64,7 @@ public class Main {
 				System.out.print("Unrecognized option: '" + arg + "' ignored.");
 			}
 		}
-
+		
 		RayTracer rayTracer = new RayTracer(scols, srows, wcols, wrows, coff, roff);
 		rayTracer.readScene(inFile);
 		if(DEBUG) {
