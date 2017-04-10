@@ -2,6 +2,8 @@ package bit;
 
 import BIT.highBIT.*;
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
 
 public class InstrumentRaytracer {
@@ -13,31 +15,44 @@ public class InstrumentRaytracer {
      */
     public static void main(String argv[]) {
     	System.out.println("Instrumenting Raytracer....");
-    	 System.out.println("Working Directory = " +
-                 System.getProperty("user.dir"));
-    	 
-        File file_in = new File(argv[0]);
-        String infilenames[] = file_in.list();
+    	
+    	ArrayList<String> files = new ArrayList<String>();
+    	
+    	for(String dirName : argv) {	//For each directory in the arguments
+    		if(Files.isDirectory(Paths.get(dirName))){	//If it is a directory 
+    			File dir = new File(dirName);
+    			for(String file : dir.list()) {
+    				if(!Files.isDirectory(Paths.get(file))) {
+    					if(!dirName.equals(".")) {
+    						files.add(dir + System.getProperty("file.separator") + file);
+    					}
+    					else{
+    						files.add(file);
+    					}
+    				}
+    			}
+    		}
+    	}
         
-        for (int i = 0; i < infilenames.length; i++) {
-            String infilename = infilenames[i];
+        for (String infilename : files) {
+        	System.out.println(infilename);
             if (infilename.endsWith(".class")) {
 				// create class info object
-				ClassInfo ci = new ClassInfo(argv[0] + System.getProperty("file.separator") + infilename);
+				ClassInfo ci = new ClassInfo(infilename);
 				
                 // loop through all the routines
                 // see java.util.Enumeration for more information on Enumeration class
-                for (Enumeration e = ci.getRoutines().elements(); e.hasMoreElements(); ) {
+                for (Enumeration<?> e = ci.getRoutines().elements(); e.hasMoreElements(); ) {
                     Routine routine = (Routine) e.nextElement();
-					routine.addBefore("ICount", "mcount", new Integer(1));
+					routine.addBefore("InstrumentRaytracer", "mcount", new Integer(1));
                     
-                    for (Enumeration b = routine.getBasicBlocks().elements(); b.hasMoreElements(); ) {
+                    for (Enumeration<?> b = routine.getBasicBlocks().elements(); b.hasMoreElements(); ) {
                         BasicBlock bb = (BasicBlock) b.nextElement();
-                        bb.addBefore("ICount", "count", new Integer(bb.size()));
+                        bb.addBefore("InstrumentRaytracer", "count", new Integer(bb.size()));
                     }
                 }
-                ci.addAfter("ICount", "printICount", ci.getClassName());
-                ci.write(argv[1] + System.getProperty("file.separator") + infilename);
+                ci.addAfter("InstrumentRaytracer", "printICount", ci.getClassName());
+                ci.write(infilename);
             }
         }
     	System.out.println("Instrumenting Raytracer Finished");
@@ -46,7 +61,7 @@ public class InstrumentRaytracer {
     public static synchronized void printICount(String foo) {
         System.out.println(i_count + " instructions in " + b_count + " basic blocks were executed in " + m_count + " methods.");
     }
-    
+  
 
     public static synchronized void count(int incr) {
         i_count += incr;
