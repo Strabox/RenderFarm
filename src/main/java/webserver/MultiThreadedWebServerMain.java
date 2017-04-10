@@ -1,8 +1,10 @@
-package webserver;
+	package webserver;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
+import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Executors;
@@ -56,11 +58,11 @@ public class MultiThreadedWebServerMain {
         	System.out.println("Thread ID: " + Thread.currentThread().getId());
         	String response;
             Map<String,String> paramMap = getQueryMap(t.getRequestURI().getQuery());
-            
+            OutputStream out = t.getResponseBody();
             if(paramMap.containsKey("f") && paramMap.containsKey("sc") && paramMap.containsKey("sr") 
             		&& paramMap.containsKey("wc") && paramMap.containsKey("wr")
             		&& paramMap.containsKey("coff") && paramMap.containsKey("roff")) {
-            	String[] args = { paramMap.get("f"), "out.bmp", paramMap.get("sc"), paramMap.get("sr"),
+            	String[] args = { paramMap.get("f"), "out" + Thread.currentThread().getId() + ".bmp", paramMap.get("sc"), paramMap.get("sr"),
             			paramMap.get("wc"), paramMap.get("wr"), paramMap.get("coff"), paramMap.get("roff")};
             	System.out.println("INfile:" + args[0] + ";OUTfile:" + args[1] + ";sc:" + args[2] + ";sr:" + 
             			args[3] + ";wc:" + args[4] + ";wr:" + args[5] + ";coff:" + args[6] + ";roff:" + args[7]
@@ -68,24 +70,27 @@ public class MultiThreadedWebServerMain {
 				try {
 					Main.main(args);
 					response = "Ok request: " + t.getRequestURI().getQuery();
-					t.sendResponseHeaders(200, response.length());
+					File image = new File("out" + Thread.currentThread().getId() + ".bmp");
+					t.sendResponseHeaders(200, image.length());
+					Files.copy(image.toPath(), out);
 				} catch(IOException e) {
 					response = "Rendering source file not found";
 					t.sendResponseHeaders(400, response.length());
+					out.write(response.getBytes());
 					e.printStackTrace();
 				} catch (InterruptedException e) {
 					response = "Problem Rendering";
 					t.sendResponseHeaders(400, response.length());
+					out.write(response.getBytes());
 					e.printStackTrace();
 				}
             }
             else {	//Invalid Request - Argument Missing
             	response = "Bad request: " + t.getRequestURI().getQuery();
             	t.sendResponseHeaders(400, response.length());
+            	out.write(response.getBytes());
             }
-            OutputStream os = t.getResponseBody();
-            os.write(response.getBytes());
-            os.close();
+            out.close();
         }
     }
 

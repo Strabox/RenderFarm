@@ -15,7 +15,7 @@ public class InstrumentRaytracer {
     	System.out.println("Instrumenting Raytracer....");
     	 System.out.println("Working Directory = " +
                  System.getProperty("user.dir"));
-    	/*
+    	 
         File file_in = new File(argv[0]);
         String infilenames[] = file_in.list();
         
@@ -40,7 +40,6 @@ public class InstrumentRaytracer {
                 ci.write(argv[1] + System.getProperty("file.separator") + infilename);
             }
         }
-        */
     	System.out.println("Instrumenting Raytracer Finished");
     }
     
