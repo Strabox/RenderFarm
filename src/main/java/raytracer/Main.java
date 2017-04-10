@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Scanner;
 
+
 public class Main {
 	private static final String USAGE = "Usage:\n"+
 			"java -cp src raytracer.Main infile bmpfile scols srows wcols wrows coff roff [-options]\n"+
