@@ -1,5 +1,6 @@
 package webserver;
 
+
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -7,7 +8,10 @@ import java.net.InetSocketAddress;
 import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
+
+import measures.Measures;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
@@ -19,6 +23,7 @@ public class MultiThreadedWebServerMain {
 
 	private static final int PORT = 8000; 
 	private static final int THREAD_POOL_SIZE = 5;
+	public static ConcurrentHashMap<Long,Measures> hash=new ConcurrentHashMap<Long,Measures>();
 	
 	/**
 	 * Method used to setup and start the webserver
@@ -32,8 +37,15 @@ public class MultiThreadedWebServerMain {
         server.start();
         System.out.println("Listening on Port: " + PORT);
     }
-
+    
+    public static void initMeasure(Long threadID){
+    	Measures measure= new Measures();
+    	hash.put(threadID, measure);	
+    }
+    
     static class RenderHandler implements HttpHandler {
+    	
+    	
     	
     	/**
     	 * Used to parse request parameters
@@ -59,6 +71,11 @@ public class MultiThreadedWebServerMain {
         	String response;
             Map<String,String> paramMap = getQueryMap(t.getRequestURI().getQuery());
             OutputStream out = t.getResponseBody();
+            Long threadID=Thread.currentThread().getId();
+            if(hash.get(threadID)==null){
+            	initMeasure(threadID);
+            }
+            
             if(paramMap.containsKey("f") && paramMap.containsKey("sc") && paramMap.containsKey("sr") 
             		&& paramMap.containsKey("wc") && paramMap.containsKey("wr")
             		&& paramMap.containsKey("coff") && paramMap.containsKey("roff")) {
@@ -68,6 +85,7 @@ public class MultiThreadedWebServerMain {
             			args[3] + ";wc:" + args[4] + ";wr:" + args[5] + ";coff:" + args[6] + ";roff:" + args[7]
             			+ ";");
 				try {
+					hash.get(threadID).raytracerInput(args[0],Integer.parseInt(args[2]), Integer.parseInt(args[3]), Integer.parseInt(args[4]), Integer.parseInt(args[5]), Integer.parseInt(args[6]), Integer.parseInt(args[7]));
 					Main.main(args);
 					response = "Ok request: " + t.getRequestURI().getQuery();
 					File image = new File("out" + Thread.currentThread().getId() + ".bmp");
