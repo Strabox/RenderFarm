@@ -49,7 +49,33 @@ public class InstrumentRaytracer {
                 // see java.util.Enumeration for more information on Enumeration class
                 for (Enumeration<?> e = ci.getRoutines().elements(); e.hasMoreElements(); ) {
                     Routine routine = (Routine) e.nextElement();
-					routine.addBefore("InstrumentRaytracer", "mcount", new Integer(1));                    
+					routine.addBefore("InstrumentRaytracer", "mcount", new Integer(1));
+					InstructionArray instructions = routine.getInstructionArray();
+					  
+					for (Enumeration<?> instrs = instructions.elements(); instrs.hasMoreElements(); ) {
+						Instruction instr = (Instruction) instrs.nextElement();
+						int opcode=instr.getOpcode();
+						if (opcode == InstructionTable.getfield)
+							instr.addBefore("InstrumentRaytracer", "LSFieldCount", new Integer(0));
+						else if (opcode == InstructionTable.putfield)
+							instr.addBefore("InstrumentRaytracer", "LSFieldCount", new Integer(1));
+						else {
+							short instr_type = InstructionTable.InstructionTypeTable[opcode];
+							if (instr_type == InstructionTable.LOAD_INSTRUCTION) {
+								instr.addBefore("InstrumentRaytracer", "LSCount", new Integer(0));
+							}
+							else if (instr_type == InstructionTable.STORE_INSTRUCTION) {
+								instr.addBefore("InstrumentRaytracer", "LSCount", new Integer(1));
+							}
+						}
+						if ((opcode==InstructionTable.NEW) ||
+							(opcode==InstructionTable.newarray) ||
+							(opcode==InstructionTable.anewarray) ||
+							(opcode==InstructionTable.multianewarray)) {
+							instr.addBefore("InstrumentRaytracer", "allocCount", new Integer(opcode));
+						}
+					}
+					
                     for (Enumeration<?> b = routine.getBasicBlocks().elements(); b.hasMoreElements(); ) {
                         BasicBlock bb = (BasicBlock) b.nextElement();
                         bb.addBefore("InstrumentRaytracer", "count", new Integer(bb.size()));
@@ -64,7 +90,12 @@ public class InstrumentRaytracer {
     
     public static void printICount(String foo) {
         Long threadID=Thread.currentThread().getId();
-    	System.out.println("Input:"+ "f:" + MultiThreadedWebServerMain.hash.get(threadID).getFile()+ " sc:" + MultiThreadedWebServerMain.hash.get(threadID).getScolumns() + " sr:" + MultiThreadedWebServerMain.hash.get(threadID).getSrows()+" wc:" + MultiThreadedWebServerMain.hash.get(threadID).getWidth()+ " wr:" +MultiThreadedWebServerMain.hash.get(threadID).getHeight() + " coff:" + MultiThreadedWebServerMain.hash.get(threadID).getColumnOffset()+ " roff:"+ MultiThreadedWebServerMain.hash.get(threadID).getRowOffset()+ " "+MultiThreadedWebServerMain.hash.get(threadID).getI_count() + " instructions in " + MultiThreadedWebServerMain.hash.get(threadID).getB_count()+ " basic blocks were executed in " + MultiThreadedWebServerMain.hash.get(threadID).getM_count() + " methods.");
+    	System.out.println("Input:"+ "f:" + MultiThreadedWebServerMain.hash.get(threadID).getFile()+ " sc:" + MultiThreadedWebServerMain.hash.get(threadID).getScolumns() + " sr:" + MultiThreadedWebServerMain.hash.get(threadID).getSrows()+" wc:" + MultiThreadedWebServerMain.hash.get(threadID).getWidth()+ " wr:" +MultiThreadedWebServerMain.hash.get(threadID).getHeight() + " coff:" + MultiThreadedWebServerMain.hash.get(threadID).getColumnOffset()+ " roff:"+ MultiThreadedWebServerMain.hash.get(threadID).getRowOffset()+ " "+MultiThreadedWebServerMain.hash.get(threadID).getI_count() + " instructions in " + MultiThreadedWebServerMain.hash.get(threadID).getB_count()+ " basic blocks were executed in " + MultiThreadedWebServerMain.hash.get(threadID).getM_count() + " methods"
+    				+" with "+MultiThreadedWebServerMain.hash.get(threadID).getNewcount()+" newcounts and "+MultiThreadedWebServerMain.hash.get(threadID).getAnewarraycount()+" anewarraycount and " + MultiThreadedWebServerMain.hash.get(threadID).getMultianewarraycount()+" multianewarraycount");
+    	System.out.println("FieldLoads: "+ MultiThreadedWebServerMain.hash.get(threadID).getFieldloadcount());
+    	System.out.println("FieldStores: "+ MultiThreadedWebServerMain.hash.get(threadID).getFieldstorecount());
+    	System.out.println("Loads: "+ MultiThreadedWebServerMain.hash.get(threadID).getLoadcount());
+    	System.out.println("Stores: "+ MultiThreadedWebServerMain.hash.get(threadID).getStorecount());
     	MultiThreadedWebServerMain.hash.get(threadID).reset();
     }
 
@@ -78,5 +109,45 @@ public class InstrumentRaytracer {
     	Long threadID=Thread.currentThread().getId();
     	MultiThreadedWebServerMain.hash.get(threadID).setM_count(MultiThreadedWebServerMain.hash.get(threadID).getM_count()+1);
     }
+    
+    public static void allocCount(int type)
+	{
+		switch(type) {
+		case InstructionTable.NEW:
+			Long threadID=Thread.currentThread().getId();
+	    	MultiThreadedWebServerMain.hash.get(threadID).setNewcount(MultiThreadedWebServerMain.hash.get(threadID).getNewcount()+1);
+			break;
+		case InstructionTable.newarray:
+			threadID=Thread.currentThread().getId();
+	    	MultiThreadedWebServerMain.hash.get(threadID).setNewarraycount(MultiThreadedWebServerMain.hash.get(threadID).getNewarraycount()+1);
+			break;
+		case InstructionTable.anewarray:
+			threadID=Thread.currentThread().getId();
+	    	MultiThreadedWebServerMain.hash.get(threadID).setAnewarraycount(MultiThreadedWebServerMain.hash.get(threadID).getAnewarraycount()+1);
+			break;
+		case InstructionTable.multianewarray:
+			threadID=Thread.currentThread().getId();
+	    	MultiThreadedWebServerMain.hash.get(threadID).setMultianewarraycount(MultiThreadedWebServerMain.hash.get(threadID).getMultianewarraycount()+1);
+			break;
+		}
+	}
+    
+    public static void LSFieldCount(int type) 
+	{
+    	Long threadID=Thread.currentThread().getId();
+		if (type == 0)	
+    	MultiThreadedWebServerMain.hash.get(threadID).setFieldloadcount(MultiThreadedWebServerMain.hash.get(threadID).getFieldloadcount()+1);
+		else
+			MultiThreadedWebServerMain.hash.get(threadID).setFieldstorecount(MultiThreadedWebServerMain.hash.get(threadID).getFieldstorecount()+1);
+	}
+
+public static void LSCount(int type) 
+	{
+		Long threadID=Thread.currentThread().getId();
+		if (type == 0)
+			MultiThreadedWebServerMain.hash.get(threadID).setLoadcount(MultiThreadedWebServerMain.hash.get(threadID).getLoadcount()+1);
+		else
+			MultiThreadedWebServerMain.hash.get(threadID).setStorecount(MultiThreadedWebServerMain.hash.get(threadID).getStorecount()+1);
+	}
     
 }
