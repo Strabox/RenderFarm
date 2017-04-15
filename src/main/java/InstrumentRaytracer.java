@@ -88,7 +88,7 @@ public class InstrumentRaytracer {
     	System.out.println("Instrumenting Finished");
     }
     
-    public static void printICount(String foo) {
+    public static void printICount(String foo) throws IOException {
         Long threadID=Thread.currentThread().getId();
     	System.out.println("Input:"+ "f:" + MultiThreadedWebServerMain.hash.get(threadID).getFile()+ " sc:" + MultiThreadedWebServerMain.hash.get(threadID).getScolumns() + " sr:" + MultiThreadedWebServerMain.hash.get(threadID).getSrows()+" wc:" + MultiThreadedWebServerMain.hash.get(threadID).getWidth()+ " wr:" +MultiThreadedWebServerMain.hash.get(threadID).getHeight() + " coff:" + MultiThreadedWebServerMain.hash.get(threadID).getColumnOffset()+ " roff:"+ MultiThreadedWebServerMain.hash.get(threadID).getRowOffset()+ " "+MultiThreadedWebServerMain.hash.get(threadID).getI_count() + " instructions in " + MultiThreadedWebServerMain.hash.get(threadID).getB_count()+ " basic blocks were executed in " + MultiThreadedWebServerMain.hash.get(threadID).getM_count() + " methods"
     				+" with "+MultiThreadedWebServerMain.hash.get(threadID).getNewcount()+" newcounts and "+MultiThreadedWebServerMain.hash.get(threadID).getAnewarraycount()+" anewarraycount and " + MultiThreadedWebServerMain.hash.get(threadID).getMultianewarraycount()+" multianewarraycount");
@@ -96,6 +96,22 @@ public class InstrumentRaytracer {
     	System.out.println("FieldStores: "+ MultiThreadedWebServerMain.hash.get(threadID).getFieldstorecount());
     	System.out.println("Loads: "+ MultiThreadedWebServerMain.hash.get(threadID).getLoadcount());
     	System.out.println("Stores: "+ MultiThreadedWebServerMain.hash.get(threadID).getStorecount());
+    	
+		FileWriter fw =  new FileWriter("output.txt");
+		BufferedWriter bw = new BufferedWriter(fw);
+		byte[] encoded = Files.readAllBytes(Paths.get(MultiThreadedWebServerMain.hash.get(threadID).getFile()));
+		
+		bw.write("Input: "+new String(encoded));
+		bw.write("Basic blocks: "+ MultiThreadedWebServerMain.hash.get(threadID).getB_count());
+		bw.newLine();
+		bw.write("NewCount: "+MultiThreadedWebServerMain.hash.get(threadID).getNewcount());
+		bw.newLine();
+		bw.write("Loads: "+MultiThreadedWebServerMain.hash.get(threadID).getLoadcount());
+		bw.newLine();
+		bw.write("Stores: "+MultiThreadedWebServerMain.hash.get(threadID).getStorecount());
+		bw.flush();
+		bw.close();
+		fw.close();
     	MultiThreadedWebServerMain.hash.get(threadID).reset();
     }
 
