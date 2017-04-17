@@ -116,8 +116,6 @@ public class InstrumentRaytracer {
 		bw.newLine();
 		bw.write("Basic blocks: "+ MultiThreadedWebServerMain.hash.get(threadID).getB_count());
 		bw.newLine();
-		bw.write("NewCount: "+MultiThreadedWebServerMain.hash.get(threadID).getNewcount());
-		bw.newLine();
 		bw.write("Loads: "+MultiThreadedWebServerMain.hash.get(threadID).getLoadcount());
 		bw.newLine();
 		bw.write("Stores: "+MultiThreadedWebServerMain.hash.get(threadID).getStorecount());
