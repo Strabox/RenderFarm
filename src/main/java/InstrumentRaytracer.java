@@ -100,7 +100,10 @@ public class InstrumentRaytracer {
 		FileWriter fw =  new FileWriter("output.txt",true);
 		BufferedWriter bw = new BufferedWriter(fw);
 		
-		bw.write("Input: "+MultiThreadedWebServerMain.hash.get(threadID).getFile());
+		if(new File("output.txt").length()!=0)
+			bw.newLine();
+		
+		bw.write("Input_file: "+MultiThreadedWebServerMain.hash.get(threadID).getFile());
 		bw.newLine();
 		bw.write("Scene_columns: " + MultiThreadedWebServerMain.hash.get(threadID).getScolumns());
 		bw.newLine();
