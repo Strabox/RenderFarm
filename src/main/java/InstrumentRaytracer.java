@@ -97,11 +97,23 @@ public class InstrumentRaytracer {
     	System.out.println("Loads: "+ MultiThreadedWebServerMain.hash.get(threadID).getLoadcount());
     	System.out.println("Stores: "+ MultiThreadedWebServerMain.hash.get(threadID).getStorecount());
     	
-		FileWriter fw =  new FileWriter("output.txt");
+		FileWriter fw =  new FileWriter("output.txt",true);
 		BufferedWriter bw = new BufferedWriter(fw);
-		byte[] encoded = Files.readAllBytes(Paths.get(MultiThreadedWebServerMain.hash.get(threadID).getFile()));
 		
-		bw.write("Input: "+new String(encoded));
+		bw.write("Input: "+MultiThreadedWebServerMain.hash.get(threadID).getFile());
+		bw.newLine();
+		bw.write("Scene_columns: " + MultiThreadedWebServerMain.hash.get(threadID).getScolumns());
+		bw.newLine();
+		bw.write("Scene_rows: "+ MultiThreadedWebServerMain.hash.get(threadID).getSrows());
+		bw.newLine();
+		bw.write("Window_columns: "+ MultiThreadedWebServerMain.hash.get(threadID).getWidth());
+		bw.newLine();
+		bw.write("Window_rows: "+MultiThreadedWebServerMain.hash.get(threadID).getHeight());
+		bw.newLine();
+		bw.write("Offset_columns: "+MultiThreadedWebServerMain.hash.get(threadID).getColumnOffset());
+		bw.newLine();
+		bw.write("Offset_rows: "+MultiThreadedWebServerMain.hash.get(threadID).getRowOffset());
+		bw.newLine();
 		bw.write("Basic blocks: "+ MultiThreadedWebServerMain.hash.get(threadID).getB_count());
 		bw.newLine();
 		bw.write("NewCount: "+MultiThreadedWebServerMain.hash.get(threadID).getNewcount());
@@ -109,6 +121,7 @@ public class InstrumentRaytracer {
 		bw.write("Loads: "+MultiThreadedWebServerMain.hash.get(threadID).getLoadcount());
 		bw.newLine();
 		bw.write("Stores: "+MultiThreadedWebServerMain.hash.get(threadID).getStorecount());
+		bw.newLine();
 		bw.flush();
 		bw.close();
 		fw.close();
