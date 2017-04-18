@@ -92,11 +92,13 @@ public class MultiThreadedWebServerMain {
 					t.sendResponseHeaders(200, image.length());
 					Files.copy(image.toPath(), out);
 				} catch(IOException e) {
-					response = "Rendering source file not found";
+					e.printStackTrace();
+					response = "No test file";
 					t.sendResponseHeaders(400, response.length());
 					out.write(response.getBytes());
 					e.printStackTrace();
 				} catch (InterruptedException e) {
+					e.printStackTrace();
 					response = "Problem Rendering";
 					t.sendResponseHeaders(400, response.length());
 					out.write(response.getBytes());
