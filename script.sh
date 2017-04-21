@@ -1,10 +1,10 @@
 #!/bin/bash
-# Execute command to allow script execution: chmod 0700 script.sh 
 ##################################################################
-#                            README
+#                         INSTRUCTIONS
 ##################################################################
-#
-# Arguments for script are (1 2 or 3) (ex: ./script.sh 3):
+# 1. Execute command to allow script execution: chmod 0700 script.sh (If needed)
+
+# 2. Arguments for script are (1 2 or 3) (ex: ./script.sh 3):
 #	1 - Clean the project
 #	2 - Run the webserver with instrumented code
 #	3 - Run the webserver without the instrumented code
@@ -31,6 +31,8 @@ temp="bin"
 echo "[SCRIPT]STARTING AWESOME SCRIPT..."
 
 task=$1	#Get the first argument passed to the script
+
+cd /home/ec2-user/RenderFarm
 
 if [ $task = 1 ]	#Clean temp directory
 then
