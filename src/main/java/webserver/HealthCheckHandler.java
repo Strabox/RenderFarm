@@ -8,7 +8,7 @@ import com.sun.net.httpserver.HttpHandler;
 
 /**
  * Handler for health check request from the load balancer.
- * @author André
+ * @author Andre
  *
  */
 public class HealthCheckHandler implements HttpHandler {
