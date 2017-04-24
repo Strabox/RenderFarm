@@ -97,7 +97,7 @@ public class RenderHandler implements HttpHandler {
 			}
         }
         else {	//Invalid Request - Argument(s) Missing
-        	response = "Bad requestttaaaaaaaaaaaa: " + t.getRequestURI().getQuery();
+        	response = "Bad requesttthhhhhhhhhhh: " + t.getRequestURI().getQuery();
         	t.sendResponseHeaders(200, response.length());
         	out.write(response.getBytes());
         }
