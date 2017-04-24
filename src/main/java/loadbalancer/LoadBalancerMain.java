@@ -4,6 +4,7 @@ import com.amazonaws.AmazonClientException;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.profile.ProfileCredentialsProvider;
+import com.amazonaws.regions.Regions;
 import com.amazonaws.services.ec2.AmazonEC2;
 import com.amazonaws.services.ec2.AmazonEC2ClientBuilder;
 
@@ -14,11 +15,10 @@ import com.amazonaws.services.ec2.AmazonEC2ClientBuilder;
  */
 public class LoadBalancerMain {
 
-	private static final String SUBNET = "TODO";
+	private static final Regions AVAILABILITY_ZONE = Regions.US_WEST_2;
 	
-	static AmazonEC2 ec2;
+	private static AmazonEC2 ec2;
 	
-	@SuppressWarnings("unused")
 	public static void main(String[] args) {
 		System.out.println("Starting Load Balancer...");
 		init();
@@ -53,7 +53,7 @@ public class LoadBalancerMain {
                     "location (~/.aws/credentials), and is in valid format.",
                     e);
         }
-      ec2 = AmazonEC2ClientBuilder.standard().withRegion("eu-west-1").withCredentials(new AWSStaticCredentialsProvider(credentials)).build();
+        ec2 = AmazonEC2ClientBuilder.standard().withRegion(AVAILABILITY_ZONE).withCredentials(new AWSStaticCredentialsProvider(credentials)).build();
     }
 	
 }
