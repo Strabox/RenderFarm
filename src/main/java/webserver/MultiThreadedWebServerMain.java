@@ -5,15 +5,20 @@ import java.net.InetSocketAddress;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 
-import measures.Measures;
-
 import com.sun.net.httpserver.HttpServer;
 
+import metrics.Metric;
+
+/**
+ * Class to launch the webserver instance that receive requests to raytracer.
+ * @author Andre
+ *
+ */
 public class MultiThreadedWebServerMain {
 
 	private static final int PORT = 8000; 
 	
-	public static ConcurrentHashMap<Long,Measures> hash = new ConcurrentHashMap<Long,Measures>();
+	public static ConcurrentHashMap<Long,Metric> metricsGatherer = new ConcurrentHashMap<Long,Metric>();
 	
 	/**
 	 * Method used to setup and start the webserver
@@ -26,12 +31,12 @@ public class MultiThreadedWebServerMain {
         server.createContext("/HealthCheck", new HealthCheckHandler());
         server.setExecutor(Executors.newCachedThreadPool());	//Warning: Unbounded thread limit
         server.start();
-        System.out.println("Listening on Port: " + PORT);
+        System.out.println("Raytracer webserver running, listening on Port: " + PORT);
     }
     
     public static void initMeasure(Long threadID){
-    	Measures measure = new Measures();
-    	hash.put(threadID, measure);	
+    	Metric metric = new Metric();
+    	metricsGatherer.put(threadID, metric);	
     }
     
 

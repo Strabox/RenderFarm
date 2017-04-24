@@ -10,9 +10,13 @@ import java.util.Map;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
+import metrics.Metric;
+import metrics.NormalizedWindow;
 import raytracer.Main;
 
 public class RenderHandler implements HttpHandler {
+	
+	private final static String OS = System.getProperty("os.name").toLowerCase();
 	
 	/**
 	 * Used to parse request parameters
@@ -39,22 +43,38 @@ public class RenderHandler implements HttpHandler {
         Map<String,String> paramMap = getQueryMap(t.getRequestURI().getQuery());
         OutputStream out = t.getResponseBody();
         
-        Long threadID=Thread.currentThread().getId();
-        if(MultiThreadedWebServerMain.hash.get(threadID) == null){
+        Long threadID = Thread.currentThread().getId();
+        if(MultiThreadedWebServerMain.metricsGatherer.get(threadID) == null){
         	MultiThreadedWebServerMain.initMeasure(threadID);
         }
         
         if(paramMap.containsKey("f") && paramMap.containsKey("sc") && paramMap.containsKey("sr") 
         		&& paramMap.containsKey("wc") && paramMap.containsKey("wr")
         		&& paramMap.containsKey("coff") && paramMap.containsKey("roff")) {
-        	String[] args = { paramMap.get("f"), "out" + Thread.currentThread().getId() + ".bmp", paramMap.get("sc"), paramMap.get("sr"),
+        	String inputFileName = paramMap.get("f");
+        	if(OS.indexOf("win") >= 0) {
+        		inputFileName = "win-" + inputFileName;
+        	}
+        	Long sceneHeight = Long.parseLong(paramMap.get("sr"));
+        	Long sceneWidth = Long.parseLong(paramMap.get("sc"));
+        	Long windowWidth = Long.parseLong(paramMap.get("wc"));
+        	Long windowHeight = Long.parseLong(paramMap.get("wr"));
+        	Long collumnOffset = Long.parseLong(paramMap.get("coff"));
+        	Long rowOffset = Long.parseLong(paramMap.get("roff"));
+
+        	String[] args = { inputFileName, "out" + Thread.currentThread().getId() + ".bmp", paramMap.get("sc"), paramMap.get("sr"),
         			paramMap.get("wc"), paramMap.get("wr"), paramMap.get("coff"), paramMap.get("roff")};
         	System.out.println("INfile:" + args[0] + ";OUTfile:" + args[1] + ";sc:" + args[2] + ";sr:" + 
-        			args[3] + ";wc:" + args[4] + ";wr:" + args[5] + ";coff:" + args[6] + ";roff:" + args[7]
-        			+ ";");
+        			args[3] + ";wc:" + args[4] + ";wr:" + args[5] + ";coff:" + args[6] + ";roff:" + args[7]+ ";");
 			try {
-				MultiThreadedWebServerMain.hash.get(threadID).raytracerInput(args[0],Integer.parseInt(args[2]), Integer.parseInt(args[3]), Integer.parseInt(args[4]), Integer.parseInt(args[5]), Integer.parseInt(args[6]), Integer.parseInt(args[7]));
-				Main.main(args);
+				Metric metric = MultiThreadedWebServerMain.metricsGatherer.get(threadID);
+				metric.setFileName(paramMap.get("f"));
+				metric.setTotalPixelsRendered(Long.parseLong(paramMap.get("wc")) * Long.parseLong(paramMap.get("wr")));
+				metric.setNormalizedWindow(NormalizedWindow
+						.BuildNormalizedWindow(sceneWidth, sceneHeight, windowWidth, windowHeight, collumnOffset, rowOffset));
+				
+				Main.main(args);	// Executing the raytracing requested.
+				
 				response = "Ok request: " + t.getRequestURI().getQuery();
 				File image = new File("out" + Thread.currentThread().getId() + ".bmp");
 				t.sendResponseHeaders(200, image.length());

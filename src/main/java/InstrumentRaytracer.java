@@ -1,21 +1,22 @@
 import BIT.highBIT.*;
+import metrics.Measures;
+import metrics.Metric;
+
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import webserver.MultiThreadedWebServerMain;
 
 /**
  * Class used to Instrument raytracer code. 
  * Obtains metrics from raytracer performance.
- * @author Andr�
+ * @author Andre
  *
  */
-public class InstrumentRaytracer {
-	///private static int i_count = 0, b_count = 0, m_count = 0;
-    
+public class InstrumentRaytracer {  
 	
+	private static final String METRICS_LOG_FILENAME = "output.txt";
 	
     /* main reads in all the files class files present in the input directory,
      * instruments them, and outputs them to the specified output directory.
@@ -23,7 +24,7 @@ public class InstrumentRaytracer {
     public static void main(String argv[]) {
     	System.out.println("Instrumenting...");
     	ArrayList<String> files = new ArrayList<String>();
-    	//hash = new ConcurrentHashMap<Long,Measures>();
+
     	for(String dirName : argv) {	//For each directory in the arguments
     		if(Files.isDirectory(Paths.get(dirName))){	//If it is a directory 
     			File dir = new File(dirName);
@@ -45,16 +46,15 @@ public class InstrumentRaytracer {
             if (infilename.endsWith(".class")) {
 				// create class info object
 				ClassInfo ci = new ClassInfo(infilename);
-                // loop through all the routines
-                // see java.util.Enumeration for more information on Enumeration class
+                // Loop through all the routines
                 for (Enumeration<?> e = ci.getRoutines().elements(); e.hasMoreElements(); ) {
                     Routine routine = (Routine) e.nextElement();
-					routine.addBefore("InstrumentRaytracer", "mcount", new Integer(1));
 					InstructionArray instructions = routine.getInstructionArray();
-					  
+					// Loop through all the instructions
 					for (Enumeration<?> instrs = instructions.elements(); instrs.hasMoreElements(); ) {
 						Instruction instr = (Instruction) instrs.nextElement();
 						int opcode=instr.getOpcode();
+						
 						if (opcode == InstructionTable.getfield)
 							instr.addBefore("InstrumentRaytracer", "LSFieldCount", new Integer(0));
 						else if (opcode == InstructionTable.putfield)
@@ -68,116 +68,78 @@ public class InstrumentRaytracer {
 								instr.addBefore("InstrumentRaytracer", "LSCount", new Integer(1));
 							}
 						}
-						if ((opcode==InstructionTable.NEW) ||
-							(opcode==InstructionTable.newarray) ||
-							(opcode==InstructionTable.anewarray) ||
-							(opcode==InstructionTable.multianewarray)) {
-							instr.addBefore("InstrumentRaytracer", "allocCount", new Integer(opcode));
-						}
 					}
 					
                     for (Enumeration<?> b = routine.getBasicBlocks().elements(); b.hasMoreElements(); ) {
                         BasicBlock bb = (BasicBlock) b.nextElement();
-                        bb.addBefore("InstrumentRaytracer", "count", new Integer(bb.size()));
+                        bb.addBefore("InstrumentRaytracer", "blocksCount", new Integer(bb.size()));
                     }
                 }
-                ci.addAfter("InstrumentRaytracer", "printICount", ci.getClassName());
+                ci.addAfter("InstrumentRaytracer", "requestFinished", ci.getClassName());
                 ci.write(infilename);
             }
         }
     	System.out.println("Instrumenting Finished");
     }
     
-    public static void printICount(String foo) throws IOException {
-        Long threadID=Thread.currentThread().getId();
-    	System.out.println("Input:"+ "f:" + MultiThreadedWebServerMain.hash.get(threadID).getFile()+ " sc:" + MultiThreadedWebServerMain.hash.get(threadID).getScolumns() + " sr:" + MultiThreadedWebServerMain.hash.get(threadID).getSrows()+" wc:" + MultiThreadedWebServerMain.hash.get(threadID).getWidth()+ " wr:" +MultiThreadedWebServerMain.hash.get(threadID).getHeight() + " coff:" + MultiThreadedWebServerMain.hash.get(threadID).getColumnOffset()+ " roff:"+ MultiThreadedWebServerMain.hash.get(threadID).getRowOffset()+ " "+MultiThreadedWebServerMain.hash.get(threadID).getI_count() + " instructions in " + MultiThreadedWebServerMain.hash.get(threadID).getB_count()+ " basic blocks were executed in " + MultiThreadedWebServerMain.hash.get(threadID).getM_count() + " methods"
-    				+" with "+MultiThreadedWebServerMain.hash.get(threadID).getNewcount()+" newcounts and "+MultiThreadedWebServerMain.hash.get(threadID).getAnewarraycount()+" anewarraycount and " + MultiThreadedWebServerMain.hash.get(threadID).getMultianewarraycount()+" multianewarraycount");
-    	System.out.println("FieldLoads: "+ MultiThreadedWebServerMain.hash.get(threadID).getFieldloadcount());
-    	System.out.println("FieldStores: "+ MultiThreadedWebServerMain.hash.get(threadID).getFieldstorecount());
-    	System.out.println("Loads: "+ MultiThreadedWebServerMain.hash.get(threadID).getLoadcount());
-    	System.out.println("Stores: "+ MultiThreadedWebServerMain.hash.get(threadID).getStorecount());
+    public static void requestFinished(String foo) throws IOException {
+        Long threadID = Thread.currentThread().getId();
+    	Metric requestMetrics = MultiThreadedWebServerMain.metricsGatherer.get(threadID);
     	
-		FileWriter fw =  new FileWriter("output.txt",true);
+    	System.out.println(requestMetrics);
+    	
+		FileWriter fw =  new FileWriter(METRICS_LOG_FILENAME,true);
 		BufferedWriter bw = new BufferedWriter(fw);
 		
-		if(new File("output.txt").length()!=0)
+		if(new File(METRICS_LOG_FILENAME).length() != 0)
 			bw.newLine();
 		
-		bw.write("Input_file: "+MultiThreadedWebServerMain.hash.get(threadID).getFile());
+		bw.write("Input_file: " + requestMetrics.getFileName());
 		bw.newLine();
-		bw.write("Scene_columns: " + MultiThreadedWebServerMain.hash.get(threadID).getScolumns());
+		bw.write("X: " + requestMetrics.getNormalizedWindow().getX());
 		bw.newLine();
-		bw.write("Scene_rows: "+ MultiThreadedWebServerMain.hash.get(threadID).getSrows());
+		bw.write("Y: "+ requestMetrics.getNormalizedWindow().getY());
 		bw.newLine();
-		bw.write("Window_columns: "+ MultiThreadedWebServerMain.hash.get(threadID).getWidth());
+		bw.write("Window_width: "+ requestMetrics.getNormalizedWindow().getWidth());
 		bw.newLine();
-		bw.write("Window_rows: "+MultiThreadedWebServerMain.hash.get(threadID).getHeight());
+		bw.write("Window_height: " + requestMetrics.getNormalizedWindow().getHeight());
 		bw.newLine();
-		bw.write("Offset_columns: "+MultiThreadedWebServerMain.hash.get(threadID).getColumnOffset());
+		bw.write("Total_pixels_rendered: " + requestMetrics.getTotalPixelsRendered());
 		bw.newLine();
-		bw.write("Offset_rows: "+MultiThreadedWebServerMain.hash.get(threadID).getRowOffset());
+		bw.write("Basic blocks: " + requestMetrics.getMeasures().getBasicBlockCount());
 		bw.newLine();
-		bw.write("Basic blocks: "+ MultiThreadedWebServerMain.hash.get(threadID).getB_count());
+		bw.write("Loads: " + requestMetrics.getMeasures().getLoadcount());
 		bw.newLine();
-		bw.write("Loads: "+MultiThreadedWebServerMain.hash.get(threadID).getLoadcount());
-		bw.newLine();
-		bw.write("Stores: "+MultiThreadedWebServerMain.hash.get(threadID).getStorecount());
+		bw.write("Stores: " + requestMetrics.getMeasures().getStorecount());
 		bw.newLine();
 		bw.flush();
 		bw.close();
 		fw.close();
-    	MultiThreadedWebServerMain.hash.get(threadID).reset();
+		requestMetrics.reset();
     }
 
-    public static void count(int incr) {
-    	Long threadID=Thread.currentThread().getId();
-    	MultiThreadedWebServerMain.hash.get(threadID).setI_count(MultiThreadedWebServerMain.hash.get(threadID).getI_count()+incr);
-    	MultiThreadedWebServerMain.hash.get(threadID).setB_count(MultiThreadedWebServerMain.hash.get(threadID).getB_count()+1);
-    }
-
-    public static void mcount(int incr) {
-    	Long threadID=Thread.currentThread().getId();
-    	MultiThreadedWebServerMain.hash.get(threadID).setM_count(MultiThreadedWebServerMain.hash.get(threadID).getM_count()+1);
+    public static void blocksCount(int incr) {
+    	Long threadID = Thread.currentThread().getId();
+    	Measures measures = MultiThreadedWebServerMain.metricsGatherer.get(threadID).getMeasures();
+    	measures.incrementBasiBlockCount();
     }
     
-    public static void allocCount(int type)
-	{
-		switch(type) {
-		case InstructionTable.NEW:
-			Long threadID=Thread.currentThread().getId();
-	    	MultiThreadedWebServerMain.hash.get(threadID).setNewcount(MultiThreadedWebServerMain.hash.get(threadID).getNewcount()+1);
-			break;
-		case InstructionTable.newarray:
-			threadID=Thread.currentThread().getId();
-	    	MultiThreadedWebServerMain.hash.get(threadID).setNewarraycount(MultiThreadedWebServerMain.hash.get(threadID).getNewarraycount()+1);
-			break;
-		case InstructionTable.anewarray:
-			threadID=Thread.currentThread().getId();
-	    	MultiThreadedWebServerMain.hash.get(threadID).setAnewarraycount(MultiThreadedWebServerMain.hash.get(threadID).getAnewarraycount()+1);
-			break;
-		case InstructionTable.multianewarray:
-			threadID=Thread.currentThread().getId();
-	    	MultiThreadedWebServerMain.hash.get(threadID).setMultianewarraycount(MultiThreadedWebServerMain.hash.get(threadID).getMultianewarraycount()+1);
-			break;
-		}
-	}
-    
-    public static void LSFieldCount(int type) 
-	{
-    	Long threadID=Thread.currentThread().getId();
+    public static void LSFieldCount(int type) {
+    	Long threadID = Thread.currentThread().getId();
+    	Measures measures = MultiThreadedWebServerMain.metricsGatherer.get(threadID).getMeasures();
 		if (type == 0)	
-    	MultiThreadedWebServerMain.hash.get(threadID).setFieldloadcount(MultiThreadedWebServerMain.hash.get(threadID).getFieldloadcount()+1);
+			measures.incrementFieldLoadCount();
 		else
-			MultiThreadedWebServerMain.hash.get(threadID).setFieldstorecount(MultiThreadedWebServerMain.hash.get(threadID).getFieldstorecount()+1);
+			measures.incrementFieldStoreCount();
 	}
 
-public static void LSCount(int type) 
-	{
-		Long threadID=Thread.currentThread().getId();
+    public static void LSCount(int type) {
+		Long threadID = Thread.currentThread().getId();
+		Measures measures = MultiThreadedWebServerMain.metricsGatherer.get(threadID).getMeasures();
 		if (type == 0)
-			MultiThreadedWebServerMain.hash.get(threadID).setLoadcount(MultiThreadedWebServerMain.hash.get(threadID).getLoadcount()+1);
+			measures.incrementLoadCount();
 		else
-			MultiThreadedWebServerMain.hash.get(threadID).setStorecount(MultiThreadedWebServerMain.hash.get(threadID).getStorecount()+1);
+			measures.incrementStoreCount();;
 	}
     
 }
