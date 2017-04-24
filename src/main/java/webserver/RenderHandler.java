@@ -90,14 +90,14 @@ public class RenderHandler implements HttpHandler {
 				out.write(response.getBytes());
 				e.printStackTrace();
 			} catch(RuntimeException e) {
-				response = "Serious problemmmmm rendering";
+				response = "Serious problem rendering";
 				t.sendResponseHeaders(200, response.length());
 				out.write(response.getBytes());
 				e.printStackTrace();
 			}
         }
         else {	//Invalid Request - Argument(s) Missing
-        	response = "Bad request: " + t.getRequestURI().getQuery();
+        	response = "Bad requesttt: " + t.getRequestURI().getQuery();
         	t.sendResponseHeaders(200, response.length());
         	out.write(response.getBytes());
         }
