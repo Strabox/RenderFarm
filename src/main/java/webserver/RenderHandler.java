@@ -90,7 +90,7 @@ public class RenderHandler implements HttpHandler {
 				out.write(response.getBytes());
 				e.printStackTrace();
 			} catch(RuntimeException e) {
-				response = "Serious problem rendering";
+				response = "Serious problemmmmm rendering";
 				t.sendResponseHeaders(200, response.length());
 				out.write(response.getBytes());
 				e.printStackTrace();
