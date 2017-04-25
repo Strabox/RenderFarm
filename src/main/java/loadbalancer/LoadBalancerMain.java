@@ -104,18 +104,9 @@ public class LoadBalancerMain {
             System.out.println("You have " + instances.size() + " Amazon EC2 instance(s) running.");
             System.out.println("Starting a new instance.");
             
-            RunInstancesRequest runInstancesRequest =
-               new RunInstancesRequest();
-
-            runInstancesRequest.withImageId(RENDER_IMAGE_ID)
-                               .withInstanceType(RENDER_INSTANCE_TYPE)
-                               .withMinCount(1)
-                               .withMaxCount(1)
-                               .withKeyName(RENDER_KEY_PAIR_NAME)
-                               .withSecurityGroups(SECURITY_GROUP);
-            RunInstancesResult runInstancesResult = ec2.runInstances(runInstancesRequest);
-            String newInstanceId = runInstancesResult.getReservation().getInstances()
-                                      .get(0).getInstanceId();
+            startNewInstance(RENDER_IMAGE_ID, RENDER_INSTANCE_TYPE,
+            		RENDER_KEY_PAIR_NAME, SECURITY_GROUP);
+            		
             describeInstancesRequest = ec2.describeInstances();
             reservations = describeInstancesRequest.getReservations();
             instances = new HashSet<Instance>();
@@ -126,12 +117,7 @@ public class LoadBalancerMain {
 
             System.out.println("You have " + instances.size() + " Amazon EC2 instance(s) running.");
             System.out.println("Waiting 1 minute. See your instance in the AWS console...");
-            System.out.println("Terminating the instance.");
-            
-            //TerminateInstancesRequest termInstanceReq = new TerminateInstancesRequest();
-            //termInstanceReq.withInstanceIds(newInstanceId);
-            //ec2.terminateInstances(termInstanceReq);
-            
+            System.out.println("Terminating the instance.");                 
         } catch (AmazonServiceException ase) {
                 System.out.println("Caught Exception: " + ase.getMessage());
                 System.out.println("Reponse Status Code: " + ase.getStatusCode());
@@ -140,8 +126,33 @@ public class LoadBalancerMain {
         }
 	}
     
-	private static void startNewInstance(){
-		
+	/**
+	 * @param imageId
+	 * @param instanceType
+	 * @param keyPairName
+	 * @param securityGroup
+	 * @return InstanceId 
+	 */
+	private static String startNewInstance(String imageId,String instanceType,String keyPairName,String securityGroup){
+		RunInstancesRequest runInstancesRequest = new RunInstancesRequest();
+        runInstancesRequest.withImageId(imageId)
+                           .withInstanceType(instanceType)
+                           .withMinCount(1)
+                           .withMaxCount(1)
+                           .withKeyName(keyPairName)
+                           .withSecurityGroups(securityGroup);
+        RunInstancesResult runInstancesResult = ec2.runInstances(runInstancesRequest);
+        return runInstancesResult.getReservation().getInstances().get(0).getInstanceId();
+	}
+	
+	/**
+	 * 
+	 * @param instanceId
+	 */
+	private static void terminateInstance(String instanceId) {
+		TerminateInstancesRequest termInstanceReq = new TerminateInstancesRequest();
+		termInstanceReq.withInstanceIds(instanceId);
+		ec2.terminateInstances(termInstanceReq);
 	}
 	
 	/**
