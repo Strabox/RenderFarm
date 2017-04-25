@@ -1,5 +1,8 @@
 package loadbalancer;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
@@ -24,7 +27,9 @@ public class RenderFarmInstanceManager {
 	private static final String RENDER_INSTANCE_TYPE = "t2.micro";
 	private static final String RENDER_KEY_PAIR_NAME = "CNV-lab-AWS";
 	
-	private AmazonEC2 ec2;
+	private AmazonEC2 ec2;	//Thread Safe
+	
+	private Map<String,RenderFarmInstance> currentInstances;
 	
 	public RenderFarmInstanceManager(boolean directCredentials,String accessId,String accessKey) {
 		AWSCredentials credentials = null;
@@ -39,6 +44,7 @@ public class RenderFarmInstanceManager {
         }
 		ec2 = AmazonEC2ClientBuilder.standard().withRegion(AVAILABILITY_ZONE)
         		.withCredentials(new AWSStaticCredentialsProvider(credentials)).build();
+		currentInstances = new HashMap<String,RenderFarmInstance>();
 	}
 	
 	private AWSCredentials obtainCredentials(boolean directCredentials,String accessId,String accessKey) {
