@@ -37,7 +37,7 @@ public class LoadBalancerMain {
 	
 	private static final String RENDER_IMAGE_ID = "ami-db73ecbb";
 	private static final String RENDER_INSTANCE_TYPE = "t2.micro";
-	private static final String RENDER_KEY_NAME = "RenderFarm-V1.3";
+	private static final String RENDER_KEY_PAIR_NAME = "CNV-lab-AWS";
 	
 	private static final int LOAD_BALANCER_PORT = 80;
 	
@@ -111,7 +111,7 @@ public class LoadBalancerMain {
                                .withInstanceType(RENDER_INSTANCE_TYPE)
                                .withMinCount(1)
                                .withMaxCount(1)
-                               .withKeyName(RENDER_KEY_NAME)
+                               .withKeyName(RENDER_KEY_PAIR_NAME)
                                .withSecurityGroups(SECURITY_GROUP);
             RunInstancesResult runInstancesResult = ec2.runInstances(runInstancesRequest);
             String newInstanceId = runInstancesResult.getReservation().getInstances()
