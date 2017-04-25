@@ -1,8 +1,11 @@
 package loadbalancer;
 
+import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.Executors;
 
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
@@ -19,6 +22,7 @@ import com.amazonaws.services.ec2.model.Reservation;
 import com.amazonaws.services.ec2.model.RunInstancesRequest;
 import com.amazonaws.services.ec2.model.RunInstancesResult;
 import com.amazonaws.services.ec2.model.TerminateInstancesRequest;
+import com.sun.net.httpserver.HttpServer;
 
 /**
  * Main class to launch and hold our custom Load Balancer
@@ -28,68 +32,23 @@ import com.amazonaws.services.ec2.model.TerminateInstancesRequest;
 public class LoadBalancerMain {
 
 	private static final Regions AVAILABILITY_ZONE = Regions.US_WEST_2;
-	private static final String RENDER_IMAGE_ID = "ami-08ef697b";
+	
+	private static final String SECURITY_GROUP = "CNV-ssh+http";
+	
+	private static final String RENDER_IMAGE_ID = "ami-db73ecbb";
 	private static final String RENDER_INSTANCE_TYPE = "t2.micro";
+	private static final String RENDER_KEY_NAME = "RenderFarm-V1.3";
+	
+	private static final int LOAD_BALANCER_PORT = 80;
 	
 	private static AmazonEC2 ec2;
 	
-	public static void main(String[] args) throws InterruptedException {
+	
+	public static void main(String[] args) throws InterruptedException, IOException {
 		System.out.println("Starting Load Balancer...");
-		init();
-		//TODO
-		
-		try {
-            DescribeAvailabilityZonesResult availabilityZonesResult = ec2.describeAvailabilityZones();
-            System.out.println("You have access to " + availabilityZonesResult.getAvailabilityZones().size() +
-                    " Availability Zones.");
-            /* using AWS Ireland. 
-             * TODO: Pick the zone where you have your AMI, sec group and keys */
-            DescribeInstancesResult describeInstancesRequest = ec2.describeInstances();
-            List<Reservation> reservations = describeInstancesRequest.getReservations();
-            Set<Instance> instances = new HashSet<Instance>();
-
-            for (Reservation reservation : reservations) {
-                instances.addAll(reservation.getInstances());
-            }
-
-            System.out.println("You have " + instances.size() + " Amazon EC2 instance(s) running.");
-            System.out.println("Starting a new instance.");
-            RunInstancesRequest runInstancesRequest =
-               new RunInstancesRequest();
-
-            /* TODO: configure to use your AMI, key and security group */
-            runInstancesRequest.withImageId(RENDER_IMAGE_ID)
-                               .withInstanceType(RENDER_INSTANCE_TYPE)
-                               .withMinCount(1)
-                               .withMaxCount(1)
-                               .withKeyName("cnv-aws")
-                               .withSecurityGroups("ssh+http8000");
-            RunInstancesResult runInstancesResult =
-               ec2.runInstances(runInstancesRequest);
-            String newInstanceId = runInstancesResult.getReservation().getInstances()
-                                      .get(0).getInstanceId();
-            describeInstancesRequest = ec2.describeInstances();
-            reservations = describeInstancesRequest.getReservations();
-            instances = new HashSet<Instance>();
-
-            for (Reservation reservation : reservations) {
-                instances.addAll(reservation.getInstances());
-            }
-
-            System.out.println("You have " + instances.size() + " Amazon EC2 instance(s) running.");
-            System.out.println("Waiting 1 minute. See your instance in the AWS console...");
-            Thread.sleep(60000);
-            System.out.println("Terminating the instance.");
-            TerminateInstancesRequest termInstanceReq = new TerminateInstancesRequest();
-            termInstanceReq.withInstanceIds(newInstanceId);
-            ec2.terminateInstances(termInstanceReq);
-            
-        } catch (AmazonServiceException ase) {
-                System.out.println("Caught Exception: " + ase.getMessage());
-                System.out.println("Reponse Status Code: " + ase.getStatusCode());
-                System.out.println("Error Code: " + ase.getErrorCode());
-                System.out.println("Request ID: " + ase.getRequestId());
-        }
+		initAWSCredentials();
+		initAWSInfrastructure();
+		initLoadBalancer();
 	}
 	
 	 /**
@@ -103,13 +62,13 @@ public class LoadBalancerMain {
      * @see com.amazonaws.auth.PropertiesCredentials
      * @see com.amazonaws.ClientConfiguration
      */
-    private static void init() {
-
+    private static void initAWSCredentials() {
         /*
          * The ProfileCredentialsProvider will return your [default]
          * credential profile by reading from the credentials file located at
          * (~/.aws/credentials).
          */
+    	System.out.println("Initializing AWS credentials...");
         AWSCredentials credentials = null;
         try {
             credentials = new ProfileCredentialsProvider().getCredentials();
@@ -122,5 +81,80 @@ public class LoadBalancerMain {
         }
         ec2 = AmazonEC2ClientBuilder.standard().withRegion(AVAILABILITY_ZONE).withCredentials(new AWSStaticCredentialsProvider(credentials)).build();
     }
+    
+	/**
+	 * Start the first instances that will be part of our system.
+	 * @throws InterruptedException 
+	 */
+	private static void initAWSInfrastructure() throws InterruptedException {
+		System.out.println("Initializing AWS infrastructure");
+		try {
+            DescribeAvailabilityZonesResult availabilityZonesResult = ec2.describeAvailabilityZones();
+            System.out.println("You have access to " + availabilityZonesResult.getAvailabilityZones().size() +
+                    " Availability Zones.");
+
+            DescribeInstancesResult describeInstancesRequest = ec2.describeInstances();
+            List<Reservation> reservations = describeInstancesRequest.getReservations();
+            Set<Instance> instances = new HashSet<Instance>();
+
+            for (Reservation reservation : reservations) {
+                instances.addAll(reservation.getInstances());
+            }
+
+            System.out.println("You have " + instances.size() + " Amazon EC2 instance(s) running.");
+            System.out.println("Starting a new instance.");
+            
+            RunInstancesRequest runInstancesRequest =
+               new RunInstancesRequest();
+
+            runInstancesRequest.withImageId(RENDER_IMAGE_ID)
+                               .withInstanceType(RENDER_INSTANCE_TYPE)
+                               .withMinCount(1)
+                               .withMaxCount(1)
+                               .withKeyName(RENDER_KEY_NAME)
+                               .withSecurityGroups(SECURITY_GROUP);
+            RunInstancesResult runInstancesResult = ec2.runInstances(runInstancesRequest);
+            String newInstanceId = runInstancesResult.getReservation().getInstances()
+                                      .get(0).getInstanceId();
+            describeInstancesRequest = ec2.describeInstances();
+            reservations = describeInstancesRequest.getReservations();
+            instances = new HashSet<Instance>();
+
+            for (Reservation reservation : reservations) {
+                instances.addAll(reservation.getInstances());
+            }
+
+            System.out.println("You have " + instances.size() + " Amazon EC2 instance(s) running.");
+            System.out.println("Waiting 1 minute. See your instance in the AWS console...");
+            System.out.println("Terminating the instance.");
+            
+            //TerminateInstancesRequest termInstanceReq = new TerminateInstancesRequest();
+            //termInstanceReq.withInstanceIds(newInstanceId);
+            //ec2.terminateInstances(termInstanceReq);
+            
+        } catch (AmazonServiceException ase) {
+                System.out.println("Caught Exception: " + ase.getMessage());
+                System.out.println("Reponse Status Code: " + ase.getStatusCode());
+                System.out.println("Error Code: " + ase.getErrorCode());
+                System.out.println("Request ID: " + ase.getRequestId());
+        }
+	}
+    
+	private static void startNewInstance(){
+		
+	}
 	
+	/**
+	 * Start the load balancer webserver to start receiving requests
+	 * @throws IOException
+	 */
+	private static void initLoadBalancer() throws IOException {
+		System.out.print("Initializing load balancer request handler...");
+		HttpServer server = HttpServer.create(new InetSocketAddress(LOAD_BALANCER_PORT), 0);
+		server.createContext("/r.html", new RequestHandler());
+		server.setExecutor(Executors.newCachedThreadPool());	//Warning: Unbounded thread limit
+		server.start();
+		System.out.println("Loadbalancer, listening on Port: " + LOAD_BALANCER_PORT);
+	}
+    
 }
