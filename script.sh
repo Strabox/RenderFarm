@@ -39,7 +39,11 @@ then
 elif [ $task = 2 ] || [ $task = 3 ] || [ $task = 4 ]	#Clean and run
 then
 	cleanTempDirectory
-	export CLASSPATH="$CLASSPATH:./src/main/lib/aws-java-sdk-1.11.123/*:./src/main/lib/BIT:./src/main/java/metrics:./src/main/java/raytracer:./src/main/java/raytracer/pigments:./src/main/java/raytracer/shapes:./src/main/java/webserver:./src/main/java/loadbalancer:./src/main/java:./bin/BIT:./bin/metrics:./bin/raytracer/:./bin/raytracer/pigments/:./bin/raytracer/shapes:./bin/webserver:./bin/loadbalancer:../src/main/lib/aws-java-sdk-1.11.123/*"
+	export CLASSPATH="$CLASSPATH:$(find ./src/main/java -type d | tr '\n' ':' | sed 's/:$//')"
+	export CLASSPATH="$CLASSPATH:./src/main/lib/BIT"
+	export CLASSPATH="$CLASSPATH:./bin/BIT"
+	export CLASSPATH="$CLASSPATH:./src/main/lib/aws-java-sdk-1.11.123/*"
+
 	export _JAVA_OPTIONS="-XX:-UseSplitVerifier "$_JAVA_OPTIONS
 	mkdir $temp > /dev/null 2>&1	#Make temp directory where put binaries
 	echo "[SCRIPT]COMPILING CODE..."
