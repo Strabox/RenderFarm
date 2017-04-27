@@ -2,17 +2,12 @@ package loadbalancer;
 
 import java.io.IOException;
 import java.net.*;
-import java.io.*;
-import java.util.Map;
-
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import java.net.URL;
 import java.io.InputStream;
 import java.io.OutputStream;
 import loadbalancer.LoadBalancerMain;
-import com.amazonaws.services.ec2.model.DescribeInstancesResult;
-import com.amazonaws.services.ec2.model.Instance;
 
 
 public class RequestHandler implements HttpHandler {
@@ -22,7 +17,7 @@ public class RequestHandler implements HttpHandler {
 		String params= (String)arg0.getRequestURI().getQuery();
 		OutputStream out = arg0.getResponseBody();
 		//Map<String,String> paramMap = getQueryMap(arg0.getRequestURI().getQuery());
-		Request request= new Request()
+		Request request= new Request(null,null,0);
 		String ip = LoadBalancerMain.instanceManager.getAvailableInstance(request);//LoadBalancerMain.instanceManager.getInstanceIp(LoadBalancerMain.instanceManager.getFirstInstanceId());
 		URL url = new URL("http",ip,8000,"/r.html?"+params);
 		System.out.println("[Handler] " + url.toString());

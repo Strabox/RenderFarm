@@ -1,5 +1,9 @@
 package loadbalancer;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 /**
  * Class represent a render farm instance of our system.
  * @author Andre
@@ -13,8 +17,8 @@ public class RenderFarmInstance {
 
 	public RenderFarmInstance(String id) {
 		this.ip = null;
-		this.id=id;
-		requests=Collections.synchronizedList(new ArrayList());
+		this.id = id;
+		requests = Collections.synchronizedList(new ArrayList());
 	}
 
 	public String getIp() {
