@@ -8,9 +8,11 @@ package loadbalancer;
 public class RenderFarmInstance {
 
 	private String ip;
+	private String id;
 
-	public RenderFarmInstance(String ip) {
-		this.ip = ip;
+	public RenderFarmInstance(String id) {
+		this.ip = null;
+		this.id=id;
 	}
 
 	public String getIp() {
@@ -20,6 +22,8 @@ public class RenderFarmInstance {
 	public void setIp(String ip) {
 		this.ip = ip;
 	}
-	
+	public String getId() {
+		return id;
+	}
 	
 }
