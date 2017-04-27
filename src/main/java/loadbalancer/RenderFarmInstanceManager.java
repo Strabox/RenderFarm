@@ -39,6 +39,8 @@ public class RenderFarmInstanceManager {
 	private static final String RENDER_IMAGE_ID = "ami-db73ecbb";
 	private static final String RENDER_INSTANCE_TYPE = "t2.micro";
 	private static final String RENDER_KEY_PAIR_NAME = "CNV-lab-AWS";
+	private static final int RUNNING = 16;
+
 	
 	private AmazonEC2 ec2;	//Thread Safe
 	
@@ -107,13 +109,13 @@ public class RenderFarmInstanceManager {
         return res.getReservations().get(0).getInstances().get(0).getPublicIpAddress();
 
 	}
-	public String getAvailableInstance(){
+	public String getAvailableInstance(Request request){
 		for(RenderFarmInstance instance : currentInstances){
 			DescribeInstancesRequest describeInstancesRequest = new DescribeInstancesRequest();
        	 	describeInstancesRequest.withInstanceIds(instance.getId());
        	 	DescribeInstancesResult res= ec2.describeInstances(describeInstancesRequest);
        	 	InstanceState state = res.getReservations().get(0).getInstances().get(0).getState();
-       	 	if(state.getCode()==16){
+       	 	if(state.getCode()==RUNNING){
        	 		if(instance.getIp()==null){
        	 			instance.setIp(res.getReservations().get(0).getInstances().get(0).getPublicIpAddress());
        	 		}

@@ -3,6 +3,7 @@ package loadbalancer;
 import java.io.IOException;
 import java.net.*;
 import java.io.*;
+import java.util.Map;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
@@ -20,7 +21,9 @@ public class RequestHandler implements HttpHandler {
 	public void handle(HttpExchange arg0) throws IOException {
 		String params= (String)arg0.getRequestURI().getQuery();
 		OutputStream out = arg0.getResponseBody();
-		String ip = LoadBalancerMain.instanceManager.getAvailableInstance();//LoadBalancerMain.instanceManager.getInstanceIp(LoadBalancerMain.instanceManager.getFirstInstanceId());
+		//Map<String,String> paramMap = getQueryMap(arg0.getRequestURI().getQuery());
+		Request request= new Request()
+		String ip = LoadBalancerMain.instanceManager.getAvailableInstance(request);//LoadBalancerMain.instanceManager.getInstanceIp(LoadBalancerMain.instanceManager.getFirstInstanceId());
 		URL url = new URL("http",ip,8000,"/r.html?"+params);
 		System.out.println("[Handler] " + url.toString());
 		try{
