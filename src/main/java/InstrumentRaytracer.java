@@ -54,20 +54,14 @@ public class InstrumentRaytracer {
 					for (Enumeration<?> instrs = instructions.elements(); instrs.hasMoreElements(); ) {
 						Instruction instr = (Instruction) instrs.nextElement();
 						int opcode=instr.getOpcode();
-						
-						if (opcode == InstructionTable.getfield)
-							instr.addBefore("InstrumentRaytracer", "LSFieldCount", new Integer(0));
-						else if (opcode == InstructionTable.putfield)
-							instr.addBefore("InstrumentRaytracer", "LSFieldCount", new Integer(1));
-						else {
-							short instr_type = InstructionTable.InstructionTypeTable[opcode];
-							if (instr_type == InstructionTable.LOAD_INSTRUCTION) {
-								instr.addBefore("InstrumentRaytracer", "LSCount", new Integer(0));
-							}
-							else if (instr_type == InstructionTable.STORE_INSTRUCTION) {
-								instr.addBefore("InstrumentRaytracer", "LSCount", new Integer(1));
-							}
+						short instr_type = InstructionTable.InstructionTypeTable[opcode];
+						if (instr_type == InstructionTable.LOAD_INSTRUCTION) {
+							instr.addBefore("InstrumentRaytracer", "LSCount", new Integer(0));
 						}
+						else if (instr_type == InstructionTable.STORE_INSTRUCTION) {
+							instr.addBefore("InstrumentRaytracer", "LSCount", new Integer(1));
+						}
+						
 					}
 					
                     for (Enumeration<?> b = routine.getBasicBlocks().elements(); b.hasMoreElements(); ) {
@@ -123,15 +117,6 @@ public class InstrumentRaytracer {
     	Measures measures = MultiThreadedWebServerMain.metricsGatherer.get(threadID).getMeasures();
     	measures.incrementBasiBlockCount();
     }
-    
-    public static void LSFieldCount(int type) {
-    	Long threadID = Thread.currentThread().getId();
-    	Measures measures = MultiThreadedWebServerMain.metricsGatherer.get(threadID).getMeasures();
-		if (type == 0)	
-			measures.incrementFieldLoadCount();
-		else
-			measures.incrementFieldStoreCount();
-	}
 
     public static void LSCount(int type) {
 		Long threadID = Thread.currentThread().getId();
