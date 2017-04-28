@@ -1,16 +1,17 @@
 import BIT.highBIT.*;
-import metrics.Measures;
-import metrics.Metric;
+import renderfarm.instance.MultiThreadedWebServerMain;
+import renderfarm.util.Measures;
+import renderfarm.util.Metric;
 
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
-import webserver.MultiThreadedWebServerMain;
 
 /**
  * Class used to Instrument raytracer code. 
  * Obtains metrics from raytracer performance.
+ * NOTE: This class need to be in the default package due to BIT implementation
  * @author Andre
  *
  */

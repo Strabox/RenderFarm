@@ -1,8 +1,9 @@
 package raytracer.pigments;
 
+import javax.imageio.ImageIO;
+
 import raytracer.Point;
 
-import javax.imageio.ImageIO;
 import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.io.File;

@@ -1,8 +1,8 @@
 package raytracer.pigments;
 
-import raytracer.Point;
-
 import java.awt.Color;
+
+import raytracer.Point;
 
 
 public class CheckerPigment implements Pigment {
