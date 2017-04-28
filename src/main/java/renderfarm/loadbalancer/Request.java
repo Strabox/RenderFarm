@@ -3,17 +3,18 @@ package renderfarm.loadbalancer;
 import renderfarm.util.NormalizedWindow;
 
 /**
- * Represents a request that arrived.
+ * Represents a request that arrived to the load balancer.
+ * Total thread safe.
  * @author Andre
  *
  */
 public class Request {
 	
-	private String file;
+	private final String file;
 	
-	private NormalizedWindow normalizedWindow;
+	private final NormalizedWindow normalizedWindow;
 	
-	private long totalPixelsRendered;
+	private final long totalPixelsRendered;
 
 	public Request(String file,NormalizedWindow normalizedWindow,long totalPixelsRendered){
 		this.file = file;
@@ -32,18 +33,6 @@ public class Request {
 	public long getTotalPixelsRendered() {
 		return totalPixelsRendered;
 	}
-
-	public void setFile(String file) {
-		this.file = file;
-	}
-
-	public void setNormalizedWindow(NormalizedWindow normalizedWindow) {
-		this.normalizedWindow = normalizedWindow;
-	}
-
-	public void setTotalPixelsRendered(long totalPixelsRendered) {
-		this.totalPixelsRendered = totalPixelsRendered;
-	}
 	
 	@Override
 	public boolean equals(Object o) {
@@ -58,4 +47,14 @@ public class Request {
 		return super.hashCode();
 	}
 
+	@Override
+	public String toString() {
+		String res = "################ REQUEST #################" + System.lineSeparator();
+		res += "File: " + file + System.lineSeparator();
+		res += "Total Pixels: " + totalPixelsRendered + System.lineSeparator();
+		res += "Normalized Window: " + normalizedWindow + System.lineSeparator();
+		res += "#########################################";
+		return res;
+	}
+	
 }

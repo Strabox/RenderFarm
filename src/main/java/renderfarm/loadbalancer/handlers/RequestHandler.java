@@ -25,13 +25,17 @@ import java.io.OutputStream;
  */
 public class RequestHandler implements HttpHandler {
 
+	private static final int BUFFER_SIZE = 1024;
+	
 	@Override
 	public void handle(HttpExchange http) throws IOException {
-		String params = http.getRequestURI().getQuery();
+		String requestParams = http.getRequestURI().getQuery();
 		OutputStream out = http.getResponseBody();
+		Map<String,String> paramMap = RenderFarmUtil.getQueryMap(requestParams);
+		String handlerInstanceIP = null;
 		InputStream is = null;
-		Map<String,String> paramMap = RenderFarmUtil.getQueryMap(params); 
-		
+		Request request = null;
+		System.out.println(LoadBalancerMain.instanceManager);
 		try{
 			if(!paramMap.containsKey("f") || !paramMap.containsKey("sc") || !paramMap.containsKey("sr") 
 	        		|| !paramMap.containsKey("wc") || !paramMap.containsKey("wr")
@@ -45,18 +49,20 @@ public class RequestHandler implements HttpHandler {
 			Long collumnOffset = Long.parseLong(paramMap.get("coff"));
 			Long rowOffset = Long.parseLong(paramMap.get("roff"));
 			
-			Request request= new Request(paramMap.get("f") ,
+			request = new Request(paramMap.get("f") ,
 					NormalizedWindow.BuildNormalizedWindow(sceneWidth, sceneHeight, windowWidth, windowHeight, collumnOffset, rowOffset)
 					,windowWidth * windowHeight);
 			
-			String ip = LoadBalancerMain.instanceManager.getHandlerInstanceIP(request);
-			URL url = new URL("http",ip,SystemConfiguration.RENDER_INSTANCE_PORT,"/r.html?" + params);
-			System.out.println("[Handler]" + url.toString());
-			
+			//The call below is where all our load balancing logic is.
+			System.out.println("[Handler]Looking for best instance..");
+			handlerInstanceIP = LoadBalancerMain.instanceManager.getHandlerInstanceIP(request);
+			URL url = new URL("http",handlerInstanceIP,SystemConfiguration.RENDER_INSTANCE_PORT,"/r.html?" + requestParams);
+			System.out.println("[Handler]Instance URL: " + url.toString());
+			System.out.println(LoadBalancerMain.instanceManager);
 			HttpURLConnection connection = (HttpURLConnection) url.openConnection();	//Connect with instance
    			is = connection.getInputStream();
     		http.sendResponseHeaders(RenderFarmUtil.HTTP_OK, 0);
-			byte[] buffer = new byte[1024]; // Adjust if you want
+			byte[] buffer = new byte[BUFFER_SIZE]; // Adjust if you want
     		int bytesRead;
     		while ((bytesRead = is.read(buffer)) != -1)
     		{
@@ -78,6 +84,11 @@ public class RequestHandler implements HttpHandler {
 			if(is != null) {
 				is.close();
 			}
+			if(request != null && handlerInstanceIP != null) {
+				//Remove the request from the instance structure since it is done
+				LoadBalancerMain.instanceManager.removeRequestFromInstance(handlerInstanceIP, request);
+			}
+			System.out.println(LoadBalancerMain.instanceManager);
 		}
 	}
 

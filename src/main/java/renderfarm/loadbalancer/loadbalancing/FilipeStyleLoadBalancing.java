@@ -5,21 +5,21 @@ import java.util.List;
 import com.amazonaws.services.ec2.model.DescribeInstancesRequest;
 import com.amazonaws.services.ec2.model.DescribeInstancesResult;
 import com.amazonaws.services.ec2.model.InstanceState;
-
 import renderfarm.loadbalancer.RenderFarmInstance;
 import renderfarm.loadbalancer.RenderFarmInstanceManager;
 import renderfarm.loadbalancer.Request;
+import renderfarm.loadbalancer.exceptions.NoInstancesToHandleRequest;
 
 /**
- * Class that represents the unique style of Filipe for load balancing.
+ * Class that represents the unique legendary style of Filipe for load balancing.
  * Good if we want test something because our main load balancing is broken.
- * @author Andre
+ * @author Andre/Filipe :)
  *
  */
 public class FilipeStyleLoadBalancing extends LoadBalancing {
 
 	@Override
-	public String getFitestMachineIp(RenderFarmInstanceManager im, Request req) {
+	public RenderFarmInstance getFitestMachine(RenderFarmInstanceManager im, Request req) throws NoInstancesToHandleRequest {
 		List<RenderFarmInstance> currentInstances = im.getCurrentInstances();
 		synchronized(currentInstances) {
 			for(RenderFarmInstance instance : currentInstances){
@@ -27,14 +27,14 @@ public class FilipeStyleLoadBalancing extends LoadBalancing {
 	       	 	describeInstancesRequest.withInstanceIds(instance.getId());
 	       	 	DescribeInstancesResult res = im.getAmazonEC2().describeInstances(describeInstancesRequest);
 	       	 	InstanceState state = res.getReservations().get(0).getInstances().get(0).getState();
-	       	 	if(state.getCode() == RUNNING){
+	       	 	if(state.getCode() == RenderFarmInstance.RUNNING){
 	       	 		if(instance.getIp() == null){
 	       	 			instance.setIp(res.getReservations().get(0).getInstances().get(0).getPublicIpAddress());
 	       	 		}
-	       	 		return instance.getIp();
+	       	 		return instance;
 	       	 	} 
 			}
-			return null;
+			throw new NoInstancesToHandleRequest();
 		}
 	}
 

@@ -11,46 +11,91 @@ import java.util.List;
  *
  */
 public class RenderFarmInstance {
-
+	
+	public static final int RUNNING = 16; 
+	public static final int SHUTTING_DOWN = 32; 
+	public static final int TERMINATED = 48; 
+	public static final int STOPPING = 64; 
+	public static final int STOPPED = 80; 
+	
 	private String ip;
 	
-	private String id;
+	private final String id;
 	
-	private List<Request> requestsInExecution;
+	private List<Request> requestsInExecution;	//Thread Safe
 
+	private InstanceLoadLevel loadLevel;
+	
 	public RenderFarmInstance(String id) {
 		this.ip = null;
 		this.id = id;
-		requestsInExecution = Collections.synchronizedList(new ArrayList<Request>());
+		this.loadLevel = null;	//TODO set the initial load level
+		this.requestsInExecution = Collections.synchronizedList(new ArrayList<Request>());
 	}
 
-	public synchronized LoadLevel getLoadLevel() {
+	private void calculateLoadLevel() {
 		Iterator<Request> i = requestsInExecution.iterator();
 		while(i.hasNext()) {	//Look to all instances
-			//TODO algorithm to return instance load level based on requests that
+			//TODO algorithm to calculate instance load level based on requests that
 			//are executing in the instance
+			i.next();
 		}
-		return null;
+		loadLevel = null;	//TODO assign the new instance load level
 	}
 	
-	public void addRequest(Request req) {
+	public synchronized void addRequest(Request req) {
 		requestsInExecution.add(req);
+		calculateLoadLevel();
 	}
 	
-	public void removeRequest(Request req) {
+	public synchronized void removeRequest(Request req) {
 		requestsInExecution.remove(req);
+		calculateLoadLevel();
 	}
 	
-	public String getIp() {
-		return ip;
+	public synchronized InstanceLoadLevel getLoadLevel() {
+		return loadLevel;
 	}
-
-	public void setIp(String ip) {
+	
+	public synchronized void setIp(String ip){
 		this.ip = ip;
+	}
+	
+	public synchronized String getIp() {
+		return ip;
 	}
 	
 	public String getId() {
 		return id;
+	}
+	
+	@Override
+	public boolean equals(Object obj) {
+		RenderFarmInstance instance = (RenderFarmInstance) obj;
+		return instance.getId().equals(instance.getId());
+	}
+	
+	@Override
+	public int hashCode() {
+		return super.hashCode();
+	}
+	
+	@Override
+	public synchronized String toString() {
+		String res = "$$$$$$$$$$$$$$$$$ INSTANCE $$$$$$$$$$$$$$$$$" + System.lineSeparator();
+		res += "ID: " + id.toString() + System.lineSeparator();
+		if(ip == null) {
+			res += "IP: Not Attributted yet" + System.lineSeparator();
+		} else {
+			res += "IP: " + ip.toString() + System.lineSeparator();
+		}
+		//res += "Load Level: " + loadLevel.toString() + System.lineSeparator();
+		for(Request req : requestsInExecution) {
+			res += req;
+		}
+		res += System.lineSeparator();
+		res += "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$";
+		return res;
 	}
 	
 }

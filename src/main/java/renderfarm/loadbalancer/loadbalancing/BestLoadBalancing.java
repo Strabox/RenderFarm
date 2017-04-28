@@ -1,8 +1,8 @@
 package renderfarm.loadbalancer.loadbalancing;
 
+import renderfarm.loadbalancer.RenderFarmInstance;
 import renderfarm.loadbalancer.RenderFarmInstanceManager;
 import renderfarm.loadbalancer.Request;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 /**
  * Class that implements our best load balancing algorithm
@@ -12,9 +12,10 @@ import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 public final class BestLoadBalancing extends LoadBalancing {
 
 	@Override
-	public String getFitestMachineIp(RenderFarmInstanceManager im, Request req) {
-		// TODO The real magic is here
-		throw new NotImplementedException();
+	public RenderFarmInstance getFitestMachine(RenderFarmInstanceManager im, Request req) {
+		// TODO Our final balancing algorithm runs here
+		throw new RuntimeException("Algorithm not implemented");
 	}
+
 
 }
