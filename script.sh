@@ -43,6 +43,7 @@ then
 	export CLASSPATH="$CLASSPATH:./src/main/lib/BIT"
 	export CLASSPATH="$CLASSPATH:./bin/BIT"
 	export CLASSPATH="$CLASSPATH:./src/main/lib/aws-java-sdk-1.11.123/*"
+	export CLASSPATH="$CLASSPATH:./../src/main/lib/aws-java-sdk-1.11.123/*"	
 
 	export _JAVA_OPTIONS="-XX:-UseSplitVerifier "$_JAVA_OPTIONS
 	mkdir $temp > /dev/null 2>&1	#Make temp directory where put binaries
@@ -78,9 +79,9 @@ then
 	fi
 	if [ $task = 2 ] || [ $task = 3 ]
 	then
-        	java webserver.MultiThreadedWebServerMain
+        	java renderfarm.instance.MultiThreadedWebServerMain
     	else
-        	java loadbalancer.LoadBalancerMain
+        	java renderfarm.loadbalancer.LoadBalancerMain
     	fi
 else
 	echo "[SCRIPT]WRONG SCRIPT ARGUMENT"
