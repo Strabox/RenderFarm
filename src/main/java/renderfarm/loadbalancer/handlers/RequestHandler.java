@@ -20,7 +20,7 @@ import java.io.OutputStream;
 /**
  * Load balancer handler that receives the requests from the users and
  * redirect it to our farm.
- * @author André
+ * @author Andre
  *
  */
 public class RequestHandler implements HttpHandler {
