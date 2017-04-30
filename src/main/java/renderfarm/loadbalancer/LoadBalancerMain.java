@@ -10,6 +10,7 @@ import com.sun.net.httpserver.HttpServer;
 import renderfarm.loadbalancer.handlers.RequestHandler;
 import renderfarm.loadbalancer.loadbalancing.FilipeStyleLoadBalancing;
 import renderfarm.loadbalancer.loadbalancing.LoadBalancing;
+import dynamo.AmazonDynamoDB;
 
 /**
  * Main class to launch and hold our custom Load Balancer
@@ -35,7 +36,7 @@ public class LoadBalancerMain {
 			instanceManager = new RenderFarmInstanceManager(loadBalacing,false,null,null);
 		}
 		try{
-			System.out.println("Starting two FarmInstances...\n");
+			System.out.println("Starting " + "" +INITIAL_NUMBER_OF_INSTANCES +" FarmInstances...\n");
 			instanceManager.launchInstance(INITIAL_NUMBER_OF_INSTANCES);
 			System.out.println("Two FarmInstances created...\n");
 			System.out.println("number of instances up " + "" +instanceManager.getCurrentInstances().size());
@@ -47,6 +48,8 @@ public class LoadBalancerMain {
                 System.out.println("Request ID: " + ase.getRequestId());
         }
 		initLoadBalancer();
+		//AmazonDynamoDB dynamo = new AmazonDynamoDB();
+		//dynamo.putItem("file1.txt",(float)0.111111,(float) 0.876,(float)0.567,(float)0.678,900000000,300000,50000, 6000000,"Muito");
 	}
 	
 	/**
