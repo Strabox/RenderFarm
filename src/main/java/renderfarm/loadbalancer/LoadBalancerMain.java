@@ -38,7 +38,6 @@ public class LoadBalancerMain {
 		try{
 			System.out.println("Starting " + "" +INITIAL_NUMBER_OF_INSTANCES +" FarmInstances...\n");
 			instanceManager.launchInstance(INITIAL_NUMBER_OF_INSTANCES);
-			System.out.println("Two FarmInstances created...\n");
 			System.out.println("number of instances up " + "" +instanceManager.getCurrentInstances().size());
 		}
 		catch (AmazonServiceException ase) {
@@ -48,8 +47,9 @@ public class LoadBalancerMain {
                 System.out.println("Request ID: " + ase.getRequestId());
         }
 		initLoadBalancer();
-		//AmazonDynamoDB dynamo = new AmazonDynamoDB();
-		//dynamo.putItem("file1.txt",(float)0.111111,(float) 0.876,(float)0.567,(float)0.678,900000000,300000,50000, 6000000,"Muito");
+		AmazonDynamoDB dynamo = new AmazonDynamoDB();
+		dynamo.putItem("file1.txt",(float)0.111111,(float) 0.876,(float)0.567,(float)0.678,900000000,300000,50000, 6000000,"Muito");
+		dynamo.getIntersectiveItems("file1.txt",(float)0.11,(float)0.5,(float)0.4,(float)0.4);
 	}
 	
 	/**

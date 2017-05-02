@@ -30,6 +30,7 @@ import com.amazonaws.services.dynamodbv2.model.ScanRequest;
 import com.amazonaws.services.dynamodbv2.model.ScanResult;
 import com.amazonaws.services.dynamodbv2.model.TableDescription;
 import com.amazonaws.services.dynamodbv2.util.TableUtils;
+import com.amazonaws.services.dynamodbv2.model.ConditionalOperator;
 
 /**
  * This sample demonstrates how to perform a few simple operations with the
@@ -57,6 +58,8 @@ public class AmazonDynamoDB{
     private static final String WINDOWN_Y = "windown_y";
     private static final String WINDOWN_WIDTH = "windown_width";
     private static final String WINDOWN_HEIGHT = "windown_height";
+    private static final String WINDOWN_Y_PLUS_WINDOWN_HEIGHT = "windown_y_plus_windown_height";
+    private static final String WINDOWN_X_PLUS_WINDOWN_WIDTH = "windown_x_plus_windown_width";
     private static final String WINDOWN_TOTAL_PIXELS_RENDERED = "windown_total_pixels_rendered";
     private static final String METRICS_BASIC_BLOCK_COUNT = "metrics_basic_block_count";
     private static final String METRICS_LOAD_COUNT = "metrics_load_count";
@@ -117,9 +120,29 @@ public class AmazonDynamoDB{
 
     }
 
-   /* public List<Metric> getIntersectiveItems(String file_name, float windown_x, float windown_y, float windown_width, float windown_height){
-
-    }*/
+  public void getIntersectiveItems(String file_name, float windown_x, float windown_y, float windown_width, float windown_height){
+        HashMap<String, Condition> scanFilter = new HashMap<String, Condition>();
+            Condition condition = new Condition()
+                .withComparisonOperator(ComparisonOperator.LE.toString())
+                .withAttributeValueList(new AttributeValue().withN(Float.toString(windown_x+windown_width)));
+            scanFilter.put(WINDOWN_X, condition);
+            Condition condition2 = new Condition()
+                .withComparisonOperator(ComparisonOperator.GE.toString())
+                .withAttributeValueList(new AttributeValue().withN(Float.toString(windown_y+windown_height)));
+            scanFilter.put(WINDOWN_Y, condition2);
+            Condition condition3 = new Condition()
+                .withComparisonOperator(ComparisonOperator.LE.toString())
+                .withAttributeValueList(new AttributeValue().withN(Float.toString(windown_y)));
+            scanFilter.put(WINDOWN_Y_PLUS_WINDOWN_HEIGHT, condition);
+            Condition condition4 = new Condition()
+                .withComparisonOperator(ComparisonOperator.LE.toString())
+                .withAttributeValueList(new AttributeValue().withN(Float.toString(windown_x)));
+            scanFilter.put(WINDOWN_X_PLUS_WINDOWN_WIDTH, condition4);
+            ScanRequest scanRequest = new ScanRequest(TABLE_NAME).withScanFilter(scanFilter);
+            scanRequest.setConditionalOperator(ConditionalOperator.OR);
+            ScanResult scanResult = dynamoDB.scan(scanRequest);
+            System.out.println("Result: " + scanResult);
+    }
 
     private static Map<String, AttributeValue> newItem(String file_name,int hash, float windown_x, float windown_y, float windown_width, float windown_height, long windown_total_pixels_rendered,long metrics_basic_block_count, long metrics_load_count, long metrics_store_count, String complexity){
         Map<String, AttributeValue> item = new HashMap<String, AttributeValue>();
@@ -127,6 +150,10 @@ public class AmazonDynamoDB{
         item.put(TABLE_SORT_KEY, new AttributeValue().withN(Integer.toString(hash)));
         item.put(WINDOWN_X, new AttributeValue().withN(Float.toString(windown_x)));
         item.put(WINDOWN_Y, new AttributeValue().withN(Float.toString(windown_y)));
+        item.put(WINDOWN_X_PLUS_WINDOWN_WIDTH,new AttributeValue().withN(Float.toString(windown_x+windown_width)));
+        item.put(WINDOWN_Y_PLUS_WINDOWN_HEIGHT,new AttributeValue().withN(Float.toString(windown_y + windown_height)));
+        item.put(WINDOWN_HEIGHT, new AttributeValue().withN(Float.toString(windown_height)));
+        item.put(WINDOWN_WIDTH, new AttributeValue().withN(Float.toString(windown_width)));
         item.put(WINDOWN_TOTAL_PIXELS_RENDERED, new AttributeValue().withN(Long.toString(windown_total_pixels_rendered)));
         item.put(METRICS_BASIC_BLOCK_COUNT, new AttributeValue().withN(Long.toString(metrics_basic_block_count)));
         item.put(METRICS_LOAD_COUNT, new AttributeValue().withN(Long.toString(metrics_load_count)));
