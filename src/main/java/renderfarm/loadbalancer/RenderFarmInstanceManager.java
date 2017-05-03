@@ -17,6 +17,7 @@ import com.amazonaws.services.ec2.model.RunInstancesRequest;
 import com.amazonaws.services.ec2.model.TerminateInstancesRequest;
 import com.amazonaws.services.ec2.model.TerminateInstancesResult;
 
+import renderfarm.loadbalancer.exceptions.NoInstancesToHandleRequest;
 import renderfarm.loadbalancer.loadbalancing.LoadBalancing;
 
 import com.amazonaws.services.ec2.model.RunInstancesResult;
@@ -159,8 +160,9 @@ public class RenderFarmInstanceManager {
 	 * Get the IP of the "best" machine to handle the request (Load Balancing logic)
 	 * @param request Request that arrived to the load balancer handler
 	 * @return IP of the machine which will handle the request
+	 * @throws NoInstancesToHandleRequest 
 	 */
-	public String getHandlerInstanceIP(Request request){
+	public String getHandlerInstanceIP(Request request) throws NoInstancesToHandleRequest{
 		return loadBalancing.getFitestMachineIp(this, request);
 	}
 	

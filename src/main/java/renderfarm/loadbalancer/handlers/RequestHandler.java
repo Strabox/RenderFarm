@@ -2,13 +2,16 @@ package renderfarm.loadbalancer.handlers;
 
 import java.io.IOException;
 import java.net.*;
+
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
+import renderfarm.loadbalancer.KeepAliveThread;
 import renderfarm.loadbalancer.RenderFarmInstanceManager;
 import renderfarm.loadbalancer.Request;
 import renderfarm.loadbalancer.exceptions.InvalidRenderingRequest;
 import renderfarm.loadbalancer.exceptions.MaximumRedirectRetriesReached;
+import renderfarm.loadbalancer.exceptions.NoInstancesToHandleRequest;
 import renderfarm.util.NormalizedWindow;
 import renderfarm.util.RenderFarmUtil;
 import renderfarm.util.SystemConfiguration;
@@ -27,22 +30,30 @@ import java.io.OutputStream;
  */
 public class RequestHandler implements HttpHandler {
 
-	private static final int BUFFER_SIZE = 1024;
+	/**
+	 * Buffer size to get the render instance image reply.
+	 */
+	private static final int BUFFER_SIZE = 2048;
 	
 	/**
-	 * Maximum time tolerate to connect to an instance.
+	 * Maximum time tolerate to connect to a render instance.
 	 */
 	private static final int CONNECTION_TIMEOUT = 10000;
 	
 	/**
+	 * Maximum time for a rendering request.
+	 */
+	private static final int MAXIMUM_TIME_FOR_RENDERING = 1000 * ( 3 * (60 * 60));
+	
+	/**
 	 * Time interval between each retry in a request 
 	 */
-	private static final int TIME_INTERVAL_TO_RETRY = 500;
+	private static final int TIME_INTERVAL_TO_RETRY = 1000;
 	
 	/**
 	 * Maximum number of tries that load balancer will do.
-	 * NOTE: This will only occur if many Render Instances fail during the
-	 * requests.
+	 * NOTE: This maximum will only occur if many Render Instances
+	 * fail during the requests.
 	 */
 	private static final int MAXIMUM_NUMBER_OF_RETRIES = 4;
 	
@@ -50,20 +61,15 @@ public class RequestHandler implements HttpHandler {
 	 * Number of tries done per receiving thread <ThreadId,Retries>.
 	 */
 	private ConcurrentHashMap<Long,Integer> numberOfRetries;			//Thread safe
-	
-	/**
-	 * Represents for each thread what instance are trying to contact.
-	 */
-	public ConcurrentHashMap<Long,String> threadInstance;				//Thread safe
-	
+
 	/**
 	 * Render farm instance manager.
 	 */
 	private final RenderFarmInstanceManager instanceManager;			//Thread safe
 	
+	
 	public RequestHandler(RenderFarmInstanceManager instanceManager) {
 		this.numberOfRetries = new ConcurrentHashMap<Long,Integer>();
-		this.threadInstance = new ConcurrentHashMap<Long,String>();
 		this.instanceManager = instanceManager;
 	}
 	
@@ -93,8 +99,9 @@ public class RequestHandler implements HttpHandler {
 			
 			redirectRequest(http, requestParams, request);
 			
-			System.out.println("[Handler]Request processed with success");
+			System.out.println("[Handler]Rendering request processed with success");
 		} catch(InvalidRenderingRequest e) {
+			System.out.println("[Handler]Request with wrong format");
 			String response = "Bad request: " + http.getRequestURI().getQuery();
 			try{ 
 				http.sendResponseHeaders(RenderFarmUtil.HTTP_OK, response.length());
@@ -102,17 +109,17 @@ public class RequestHandler implements HttpHandler {
 			} catch(IOException e1) {
 				e.printStackTrace();
 			}
-			System.out.println("[Handler]Request with wrong format");
 		} catch(MaximumRedirectRetriesReached e) {
-			String response = "Retry later: " + http.getRequestURI().getQuery();
+			System.out.println("[Handler]Maximum retries reached");
+			String response = "Retry later maximum tries reached: " + http.getRequestURI().getQuery();
 			try{ 
 				http.sendResponseHeaders(RenderFarmUtil.HTTP_OK, response.length());
 				out.write(response.getBytes());
 			} catch(IOException e1) {
 				e.printStackTrace();
 			}
-			System.out.println("[Handler]System is collapsing retry later");
 		} catch(Exception e) {
+			System.out.println("[Handler]Something wrong happened");
 			e.printStackTrace();
 			String response = "Something wrong happened, retry later: " + http.getRequestURI().getQuery();
 			try{ 
@@ -121,7 +128,6 @@ public class RequestHandler implements HttpHandler {
 			} catch(IOException e1) {
 				e.printStackTrace();
 			}
-			System.out.println("[Handler]Something wrong happened");
 		} finally {
 			try {
 				out.close();
@@ -141,7 +147,9 @@ public class RequestHandler implements HttpHandler {
 	 */
 	private void redirectRequest(HttpExchange http, String requestParams, Request request) throws MaximumRedirectRetriesReached {
 		final OutputStream out = http.getResponseBody();
+		int bytesRead;
 		InputStream is = null;
+		KeepAliveThread keepAliveThread = null;
 		String handlerInstanceIP = null;
 		try {
 			System.out.println("[Handler]Looking for best instance..");
@@ -150,37 +158,25 @@ public class RequestHandler implements HttpHandler {
 			System.out.println("[Handler]Redirecting number " + getThreadNumberOfRetries() + " of request to instance URL: " + url.toString());
 			HttpURLConnection connection = (HttpURLConnection) url.openConnection();
 			connection.setConnectTimeout(CONNECTION_TIMEOUT);
+			connection.setReadTimeout(MAXIMUM_TIME_FOR_RENDERING);
 			connection.connect();
-			System.out.println("[Handler]Getting inputstream...");
+			keepAliveThread = new KeepAliveThread(connection, handlerInstanceIP);
+			keepAliveThread.start();
+			System.out.println("[Handler]Getting input stream...");
 			is = connection.getInputStream();
+			keepAliveThread.terminate();
 			http.sendResponseHeaders(RenderFarmUtil.HTTP_OK, 0);
-			byte[] buffer = new byte[BUFFER_SIZE]; // Adjust if you want
-			int bytesRead;
+			byte[] buffer = new byte[BUFFER_SIZE];
 			System.out.println("[Handler]Waiting for instance reply with image...");
 			while ((bytesRead = is.read(buffer)) != -1)
 			{
 	    		out.write(buffer, 0, bytesRead);
 			}
-		} catch (IOException e) {	//Problem Rendering (Probably instance DIED)
+		} catch (IOException e) {	//Problem Rendering (Probably instance DIED) going to redirect
 			e.printStackTrace();
-			System.out.println("[Handler]Instance died going to redirect to other instance");
-			try {
-				if(is != null) {
-					is.close();
-				}
-			} catch (IOException e1) {
-				e1.printStackTrace();
-			}
-			try {
-				out.close();
-			} catch (IOException e1) {
-				e1.printStackTrace();
-			}
-			if(request != null && handlerInstanceIP != null) {
-				//Remove the request from the instance structure since it is done.
-				instanceManager.removeRequestFromInstance(handlerInstanceIP, request);
-			}
-			if(getThreadNumberOfRetries() == MAXIMUM_NUMBER_OF_RETRIES) {
+			System.out.println("[Handler]Instance \"probably\" died, going to redirect to other instance");
+			closeResources(out, is, keepAliveThread, handlerInstanceIP, request);
+			if(getThreadNumberOfRetries() >= MAXIMUM_NUMBER_OF_RETRIES) {
 				throw new MaximumRedirectRetriesReached();
 			}
 			incrementNumberOfRetries();
@@ -191,25 +187,18 @@ public class RequestHandler implements HttpHandler {
 			}
 			redirectRequest(http, requestParams, request);	//Recursive Maximum Depth = MAXIMUM_NUMBER_OF_RETRIES
 			return;
+		} catch(NoInstancesToHandleRequest e) {
+			// WEIRD CASE
+			// TODO what we do if there are no instances to handle the request ?
 		} finally {	//Set all the resources free (Request processed with SUCCESS)
-			try {
-				out.close();
-			} catch (IOException e1) {
-				e1.printStackTrace();
-			}
-			try {
-				if(is != null)
-					is.close();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-			if(request != null && handlerInstanceIP != null) {
-				//Remove the request from the instance structure since it is done.
-				instanceManager.removeRequestFromInstance(handlerInstanceIP, request);
-			}
+			closeResources(out, is, keepAliveThread, handlerInstanceIP, request);
 		}
 	}
 
+	/**
+	 * Return the number of retries for the caller thread
+	 * @return Number of retries at the moment
+	 */
 	private int getThreadNumberOfRetries() {
 		Integer noR = numberOfRetries.get(Thread.currentThread().getId());
 		if(noR == null) {
@@ -219,12 +208,45 @@ public class RequestHandler implements HttpHandler {
 		}
 	}
 
+	/**
+	 * Increment the number of retries for caller thread
+	 */
 	private void incrementNumberOfRetries() {
 		numberOfRetries.put(Thread.currentThread().getId(), getThreadNumberOfRetries() + 1);
 	}
 	
+	/**
+	 * Reset the number of retries for the caller thread (Called when a request handling ended)
+	 */
 	private void resetThreadNumberOfRetries() {
 		numberOfRetries.put(Thread.currentThread().getId(), 0);
+	}
+	
+	/**
+	 * Close all resources in arguments, remove request and stop keep alive thread
+	 */
+	private void closeResources(OutputStream out,InputStream in,KeepAliveThread kat,
+			String handlerInstanceIP,Request request) {
+		if(kat != null) {
+			kat.terminate();
+		}
+		try {
+			if(out != null) {
+				out.close();
+			}
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
+		try {
+			if(in != null)
+				in.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		if(request != null && handlerInstanceIP != null) {
+			//Remove the request from the instance structure.
+			instanceManager.removeRequestFromInstance(handlerInstanceIP, request);
+		}
 	}
 	
 }

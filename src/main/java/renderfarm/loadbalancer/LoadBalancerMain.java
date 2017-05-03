@@ -17,16 +17,15 @@ import renderfarm.loadbalancer.loadbalancing.LoadBalancing;
  */
 public class LoadBalancerMain {
 	
+	/**
+	 * Load balancer PORT to accept the http requests.
+	 */
 	private static final int LOAD_BALANCER_PORT = 8000;
 	
 	private static RenderFarmInstanceManager instanceManager;
 	
 	//To change the load balancing style, change the object below.
 	private static final LoadBalancing loadBalacing = new FilipeStyleLoadBalancing();
-	
-	//Auto scaler object that are executing auto scaler thread
-	@SuppressWarnings("unused")
-	private static AutoScaler autoScaler;
 	
 	public static void main(String[] args) throws InterruptedException, IOException {
 		System.out.println("Starting Load Balancer...");
@@ -44,7 +43,6 @@ public class LoadBalancerMain {
 	 */
 	private static void initAutoScaler() {
 		AutoScaler autoScaler = new AutoScaler(instanceManager);
-		LoadBalancerMain.autoScaler = autoScaler;
 		autoScaler.start();
 	}
 	
