@@ -116,7 +116,7 @@ public class RenderFarmInstanceManager {
 	 * Remove the instance from our internal structure given the ID
 	 * @param instanceId Instance Id
 	 */
-	private void removeRenderFarmInstance(String instanceId) {
+	public void removeRenderFarmInstance(String instanceId) {
 		synchronized (currentInstances) {
 			for(RenderFarmInstance instance : currentInstances) {
 				if(instance.getId().equals(instanceId)) {

@@ -24,36 +24,29 @@ public class RenderFarmInstance {
 	
 	private List<Request> requestsInExecution;	//Thread Safe
 
-	private InstanceLoadLevel loadLevel;
+	/**
+	 * The estimate for our instance load
+	 */
+	private int loadLevel;
 	
 	public RenderFarmInstance(String id) {
 		this.ip = null;
 		this.id = id;
-		this.loadLevel = null;	//TODO set the initial load level
+		this.loadLevel = 0;	//TODO set the initial load level
 		this.requestsInExecution = Collections.synchronizedList(new ArrayList<Request>());
-	}
-
-	private void calculateLoadLevel() {
-		Iterator<Request> i = requestsInExecution.iterator();
-		while(i.hasNext()) {	//Look to all instances
-			//TODO algorithm to calculate instance load level based on requests that
-			//are executing in the instance
-			i.next();
-		}
-		loadLevel = null;	//TODO assign the new instance load level
 	}
 	
 	public synchronized void addRequest(Request req) {
 		requestsInExecution.add(req);
-		calculateLoadLevel();
+		loadLevel += req.getWeight();
 	}
 	
 	public synchronized void removeRequest(Request req) {
 		requestsInExecution.remove(req);
-		calculateLoadLevel();
+		loadLevel -= req.getWeight();
 	}
 	
-	public synchronized InstanceLoadLevel getLoadLevel() {
+	public synchronized int getLoadLevel() {
 		return loadLevel;
 	}
 	

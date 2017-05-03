@@ -4,7 +4,7 @@ import renderfarm.util.NormalizedWindow;
 
 /**
  * Represents a request that arrived to the load balancer.
- * Total thread safe.
+ * Thread safe.
  * @author Andre
  *
  */
@@ -15,15 +15,22 @@ public class Request {
 	private final NormalizedWindow normalizedWindow;
 	
 	private final long totalPixelsRendered;
-
+	
+	private int weight;
+	
 	public Request(String file,NormalizedWindow normalizedWindow,long totalPixelsRendered){
 		this.file = file;
 		this.normalizedWindow = normalizedWindow;
 		this.totalPixelsRendered = totalPixelsRendered;
+		this.weight = 0;
 	}
 
 	public String getFile() {
 		return file;
+	}
+	
+	public int getWeight() {
+		return weight;
 	}
 
 	public NormalizedWindow getNormalizedWindow() {
@@ -32,6 +39,10 @@ public class Request {
 
 	public long getTotalPixelsRendered() {
 		return totalPixelsRendered;
+	}
+	
+	public void setWeight(int weight) {
+		this.weight = weight;
 	}
 	
 	@Override
@@ -52,6 +63,7 @@ public class Request {
 		String res = "################ REQUEST #################" + System.lineSeparator();
 		res += "File: " + file + System.lineSeparator();
 		res += "Total Pixels: " + totalPixelsRendered + System.lineSeparator();
+		res += "Weight: " + weight + System.lineSeparator();
 		res += "Normalized Window: " + normalizedWindow + System.lineSeparator();
 		res += "#########################################";
 		return res;

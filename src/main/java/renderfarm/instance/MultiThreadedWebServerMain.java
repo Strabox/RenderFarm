@@ -10,7 +10,6 @@ import com.sun.net.httpserver.HttpServer;
 import renderfarm.instance.handlers.HealthCheckHandler;
 import renderfarm.instance.handlers.RenderHandler;
 import renderfarm.util.Metric;
-import renderfarm.util.NormalizedWindow;
 import renderfarm.util.SystemConfiguration;
 
 /**
