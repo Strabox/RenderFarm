@@ -10,7 +10,8 @@ import renderfarm.loadbalancer.handlers.RequestHandler;
 import renderfarm.loadbalancer.loadbalancing.FilipeStyleLoadBalancing;
 import renderfarm.loadbalancer.loadbalancing.LoadBalancing;
 import dynamo.AmazonDynamoDB;
-
+import renderfarm.util.Metric;
+import java.util.List;
 /**
  * Main class to launch and hold our custom Load Balancer
  * @author Andre
@@ -40,8 +41,10 @@ public class LoadBalancerMain {
 		initDynamoDB();
 		initAutoScaler();
 		initLoadBalancer();
-		
-		
+		/*dynamoDB.putItem("file1.txt", (float) 0.5,(float) 0.5,(float) 0.5,(float) 0.5, (long)1000000,(long)300000000000000000,(long)2000000,(long)222222222, 5);
+		dynamoDB.putItem("file2.txt", (float) 0.5,(float) 0.5,(float) 0.5,(float) 0.5, (long)1000000,(long)300,(long)2000000,(long)222222222, 5);
+		List<Metric> metric=dynamoDB.getIntersectiveItems("file1.txt", (float) 0.5, (float) 0.5, (float) 0.5, (float) 0.5);
+		System.out.println(metric.get(0).toString());*/
 	}
 	
 	/**

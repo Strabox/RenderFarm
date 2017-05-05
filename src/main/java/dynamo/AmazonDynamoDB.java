@@ -141,6 +141,10 @@ public class AmazonDynamoDB{
                 .withComparisonOperator(ComparisonOperator.LE.toString())
                 .withAttributeValueList(new AttributeValue().withN(Float.toString(window_x)));
             scanFilter.put(WINDOW_X_PLUS_WINDOW_WIDTH, condition4);
+            /*Condition condition5 = new Condition()
+                .withComparisonOperator(ComparisonOperator.EQ.toString())
+                .withAttributeValueList(new AttributeValue().withS(file_name));
+            scanFilter.put(TABLE_PARTION_KEY, condition5);*/
             ScanRequest scanRequest = new ScanRequest(TABLE_NAME).withScanFilter(scanFilter);
             scanRequest.setConditionalOperator(ConditionalOperator.OR);
             ScanResult scanResult = dynamoDB.scan(scanRequest);
@@ -149,18 +153,21 @@ public class AmazonDynamoDB{
             for(int i= 0; i<info.size();i++){
                 Map<String,AttributeValue> pre_metric=info.get(i);
                 String fileName= pre_metric.get(TABLE_PARTION_KEY).getS();
-                float windowX = Float.parseFloat(pre_metric.get(WINDOW_X).getN());
-                float windowY= Float.parseFloat(pre_metric.get(WINDOW_Y).getN());
-                float windowHeight= Float.parseFloat(pre_metric.get(WINDOW_HEIGHT).getN());
-                float windowWidth= Float.parseFloat(pre_metric.get(WINDOW_WIDTH).getN());
-                NormalizedWindow window = new NormalizedWindow (windowX,windowY,windowWidth,windowHeight);
-                long metrics_basic_block_count= Long.parseLong(pre_metric.get(METRICS_BASIC_BLOCK_COUNT).getS());
-                long metrics_load_count= Long.parseLong(pre_metric.get(METRICS_LOAD_COUNT).getS());
-                long metrics_store_count= Long.parseLong(pre_metric.get(METRICS_STORE_COUNT).getS());
-                Measures measure = new Measures(metrics_basic_block_count,metrics_load_count,metrics_store_count);
-                long window_total_pixels_rendered= Long.parseLong(pre_metric.get(WINDOW_TOTAL_PIXELS_RENDERED).getS());
-                Metric metric = new Metric(fileName,window,window_total_pixels_rendered,measure);
-                result.add(metric);
+                if(fileName.equals(file_name)){
+                    float windowX = Float.parseFloat(pre_metric.get(WINDOW_X).getN());
+                    float windowY= Float.parseFloat(pre_metric.get(WINDOW_Y).getN());
+                    float windowHeight= Float.parseFloat(pre_metric.get(WINDOW_HEIGHT).getN());
+                    float windowWidth= Float.parseFloat(pre_metric.get(WINDOW_WIDTH).getN());
+                    NormalizedWindow window = new NormalizedWindow (windowX,windowY,windowWidth,windowHeight);
+                    long metrics_basic_block_count= Long.parseLong(pre_metric.get(METRICS_BASIC_BLOCK_COUNT).getS());
+                    long metrics_load_count= Long.parseLong(pre_metric.get(METRICS_LOAD_COUNT).getS());
+                    long metrics_store_count= Long.parseLong(pre_metric.get(METRICS_STORE_COUNT).getS());
+                    Measures measure = new Measures(metrics_basic_block_count,metrics_load_count,metrics_store_count);
+                    long window_total_pixels_rendered= Long.parseLong(pre_metric.get(WINDOW_TOTAL_PIXELS_RENDERED).getS());
+                    int complexity=Integer.parseInt(pre_metric.get(COMPLEXITY).getN());
+                    Metric metric = new Metric(fileName,window,window_total_pixels_rendered,measure,complexity);
+                    result.add(metric);
+                }
             }
             return result;
 

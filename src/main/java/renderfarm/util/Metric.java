@@ -15,12 +15,15 @@ public class Metric {
 	
 	private Measures measures;
 
+	private int complexity;
+
 	public Metric(String fileName, NormalizedWindow normalizedWindow, 
-			long totalPixelsRendered, Measures measures) {
+			long totalPixelsRendered, Measures measures, int complexity) {
 		this.fileName = fileName;
 		this.normalizedWindow = normalizedWindow;
 		this.totalPixelsRendered = totalPixelsRendered;
 		this.measures = measures;
+		this.complexity=complexity;
 	}
 	
 	public Metric() {
@@ -57,6 +60,10 @@ public class Metric {
 		return measures;
 	}
 
+	public int getComplexity() {
+		return complexity;
+	}
+
 	public void setNormalizedWindow(NormalizedWindow normalizedWindow) {
 		this.normalizedWindow = normalizedWindow;
 	}
@@ -77,6 +84,7 @@ public class Metric {
 		res += "Normalized Window: " + normalizedWindow + System.lineSeparator();
 		res += "Total Pixels Rendered: " + totalPixelsRendered + System.lineSeparator();
 		res += "Measures: " + System.lineSeparator() + measures + System.lineSeparator();
+		res += "Complexity: " + complexity + System.lineSeparator();
 		res += "===============================================================" + System.lineSeparator();
 		return res;
 	}
