@@ -6,6 +6,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import renderfarm.util.Metric;
+import renderfarm.util.NormalizedWindow;
+import renderfarm.util.Measures;
+
 
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
@@ -54,13 +57,13 @@ public class AmazonDynamoDB{
     private static final String TABLE_NAME="metrics-table";
     private static final String TABLE_PARTION_KEY="file_name";
     private static final String TABLE_SORT_KEY="metrics_hash";
-    private static final String WINDOWN_X = "windown_x";
-    private static final String WINDOWN_Y = "windown_y";
-    private static final String WINDOWN_WIDTH = "windown_width";
-    private static final String WINDOWN_HEIGHT = "windown_height";
-    private static final String WINDOWN_Y_PLUS_WINDOWN_HEIGHT = "windown_y_plus_windown_height";
-    private static final String WINDOWN_X_PLUS_WINDOWN_WIDTH = "windown_x_plus_windown_width";
-    private static final String WINDOWN_TOTAL_PIXELS_RENDERED = "windown_total_pixels_rendered";
+    private static final String WINDOW_X = "window_x";
+    private static final String WINDOW_Y = "window_y";
+    private static final String WINDOW_WIDTH = "window_width";
+    private static final String WINDOW_HEIGHT = "window_height";
+    private static final String WINDOW_Y_PLUS_WINDOW_HEIGHT = "window_y_plus_window_height";
+    private static final String WINDOW_X_PLUS_WINDOW_WIDTH = "window_x_plus_window_width";
+    private static final String WINDOW_TOTAL_PIXELS_RENDERED = "window_total_pixels_rendered";
     private static final String METRICS_BASIC_BLOCK_COUNT = "metrics_basic_block_count";
     private static final String METRICS_LOAD_COUNT = "metrics_load_count";
     private static final String METRICS_STORE_COUNT = "metrics_store_count";
@@ -111,59 +114,78 @@ public class AmazonDynamoDB{
         CreateTable();
     }
 
-    public void putItem(String file_name, float windown_x, float windown_y, float windown_width, float windown_height, long windown_total_pixels_rendered,long metrics_basic_block_count, long metrics_load_count, long metrics_store_count, String complexity){
-        int hash = hashFunction(windown_x, windown_y, windown_width, windown_height);
-        Map<String, AttributeValue> item = newItem( file_name, hash, windown_x, windown_y, windown_width, windown_height,windown_total_pixels_rendered,metrics_basic_block_count,metrics_load_count,metrics_store_count,complexity);
+    public void putItem(String file_name, float window_x, float window_y, float window_width, float window_height, long window_total_pixels_rendered,long metrics_basic_block_count, long metrics_load_count, long metrics_store_count, int complexity){
+        int hash = hashFunction(window_x, window_y, window_width, window_height);
+        Map<String, AttributeValue> item = newItem( file_name, hash, window_x, window_y, window_width, window_height,window_total_pixels_rendered,metrics_basic_block_count,metrics_load_count,metrics_store_count,complexity);
         PutItemRequest putItemRequest = new PutItemRequest(TABLE_NAME, item);
         PutItemResult putItemResult = dynamoDB.putItem(putItemRequest);
         System.out.println("Result: " + putItemResult);
 
     }
 
-  public void getIntersectiveItems(String file_name, float windown_x, float windown_y, float windown_width, float windown_height){
+  public List<Metric> getIntersectiveItems(String file_name, float window_x, float window_y, float window_width, float window_height){
         HashMap<String, Condition> scanFilter = new HashMap<String, Condition>();
             Condition condition = new Condition()
                 .withComparisonOperator(ComparisonOperator.LE.toString())
-                .withAttributeValueList(new AttributeValue().withN(Float.toString(windown_x+windown_width)));
-            scanFilter.put(WINDOWN_X, condition);
+                .withAttributeValueList(new AttributeValue().withN(Float.toString(window_x+window_width)));
+            scanFilter.put(WINDOW_X, condition);
             Condition condition2 = new Condition()
                 .withComparisonOperator(ComparisonOperator.GE.toString())
-                .withAttributeValueList(new AttributeValue().withN(Float.toString(windown_y+windown_height)));
-            scanFilter.put(WINDOWN_Y, condition2);
+                .withAttributeValueList(new AttributeValue().withN(Float.toString(window_y+window_height)));
+            scanFilter.put(WINDOW_Y, condition2);
             Condition condition3 = new Condition()
                 .withComparisonOperator(ComparisonOperator.LE.toString())
-                .withAttributeValueList(new AttributeValue().withN(Float.toString(windown_y)));
-            scanFilter.put(WINDOWN_Y_PLUS_WINDOWN_HEIGHT, condition);
+                .withAttributeValueList(new AttributeValue().withN(Float.toString(window_y)));
+            scanFilter.put(WINDOW_Y_PLUS_WINDOW_HEIGHT, condition);
             Condition condition4 = new Condition()
                 .withComparisonOperator(ComparisonOperator.LE.toString())
-                .withAttributeValueList(new AttributeValue().withN(Float.toString(windown_x)));
-            scanFilter.put(WINDOWN_X_PLUS_WINDOWN_WIDTH, condition4);
+                .withAttributeValueList(new AttributeValue().withN(Float.toString(window_x)));
+            scanFilter.put(WINDOW_X_PLUS_WINDOW_WIDTH, condition4);
             ScanRequest scanRequest = new ScanRequest(TABLE_NAME).withScanFilter(scanFilter);
             scanRequest.setConditionalOperator(ConditionalOperator.OR);
             ScanResult scanResult = dynamoDB.scan(scanRequest);
-            System.out.println("Result: " + scanResult);
+            List<Map<String,AttributeValue>> info = scanResult.getItems();
+            List<Metric> result= new ArrayList();
+            for(int i= 0; i<info.size();i++){
+                Map<String,AttributeValue> pre_metric=info.get(i);
+                String fileName= pre_metric.get(TABLE_PARTION_KEY).getS();
+                float windowX = Float.parseFloat(pre_metric.get(WINDOW_X).getN());
+                float windowY= Float.parseFloat(pre_metric.get(WINDOW_Y).getN());
+                float windowHeight= Float.parseFloat(pre_metric.get(WINDOW_HEIGHT).getN());
+                float windowWidth= Float.parseFloat(pre_metric.get(WINDOW_WIDTH).getN());
+                NormalizedWindow window = new NormalizedWindow (windowX,windowY,windowWidth,windowHeight);
+                long metrics_basic_block_count= Long.parseLong(pre_metric.get(METRICS_BASIC_BLOCK_COUNT).getS());
+                long metrics_load_count= Long.parseLong(pre_metric.get(METRICS_LOAD_COUNT).getS());
+                long metrics_store_count= Long.parseLong(pre_metric.get(METRICS_STORE_COUNT).getS());
+                Measures measure = new Measures(metrics_basic_block_count,metrics_load_count,metrics_store_count);
+                long window_total_pixels_rendered= Long.parseLong(pre_metric.get(WINDOW_TOTAL_PIXELS_RENDERED).getS());
+                Metric metric = new Metric(fileName,window,window_total_pixels_rendered,measure);
+                result.add(metric);
+            }
+            return result;
+
     }
 
-    private static Map<String, AttributeValue> newItem(String file_name,int hash, float windown_x, float windown_y, float windown_width, float windown_height, long windown_total_pixels_rendered,long metrics_basic_block_count, long metrics_load_count, long metrics_store_count, String complexity){
+    private static Map<String, AttributeValue> newItem(String file_name,int hash, float window_x, float window_y, float window_width, float window_height, long window_total_pixels_rendered,long metrics_basic_block_count, long metrics_load_count, long metrics_store_count, int complexity){
         Map<String, AttributeValue> item = new HashMap<String, AttributeValue>();
         item.put(TABLE_PARTION_KEY, new AttributeValue(file_name));
         item.put(TABLE_SORT_KEY, new AttributeValue().withN(Integer.toString(hash)));
-        item.put(WINDOWN_X, new AttributeValue().withN(Float.toString(windown_x)));
-        item.put(WINDOWN_Y, new AttributeValue().withN(Float.toString(windown_y)));
-        item.put(WINDOWN_X_PLUS_WINDOWN_WIDTH,new AttributeValue().withN(Float.toString(windown_x+windown_width)));
-        item.put(WINDOWN_Y_PLUS_WINDOWN_HEIGHT,new AttributeValue().withN(Float.toString(windown_y + windown_height)));
-        item.put(WINDOWN_HEIGHT, new AttributeValue().withN(Float.toString(windown_height)));
-        item.put(WINDOWN_WIDTH, new AttributeValue().withN(Float.toString(windown_width)));
-        item.put(WINDOWN_TOTAL_PIXELS_RENDERED, new AttributeValue().withN(Long.toString(windown_total_pixels_rendered)));
-        item.put(METRICS_BASIC_BLOCK_COUNT, new AttributeValue().withN(Long.toString(metrics_basic_block_count)));
-        item.put(METRICS_LOAD_COUNT, new AttributeValue().withN(Long.toString(metrics_load_count)));
-        item.put(METRICS_STORE_COUNT, new AttributeValue().withN(Long.toString(metrics_store_count)));
-        item.put(COMPLEXITY, new AttributeValue(complexity));
+        item.put(WINDOW_X, new AttributeValue().withN(Float.toString(window_x)));
+        item.put(WINDOW_Y, new AttributeValue().withN(Float.toString(window_y)));
+        item.put(WINDOW_X_PLUS_WINDOW_WIDTH,new AttributeValue().withN(Float.toString(window_x+window_width)));
+        item.put(WINDOW_Y_PLUS_WINDOW_HEIGHT,new AttributeValue().withN(Float.toString(window_y + window_height)));
+        item.put(WINDOW_HEIGHT, new AttributeValue().withN(Float.toString(window_height)));
+        item.put(WINDOW_WIDTH, new AttributeValue().withN(Float.toString(window_width)));
+        item.put(WINDOW_TOTAL_PIXELS_RENDERED, new AttributeValue().withS(Long.toString(window_total_pixels_rendered)));
+        item.put(METRICS_BASIC_BLOCK_COUNT, new AttributeValue().withS(Long.toString(metrics_basic_block_count)));
+        item.put(METRICS_LOAD_COUNT, new AttributeValue().withS(Long.toString(metrics_load_count)));
+        item.put(METRICS_STORE_COUNT, new AttributeValue().withS(Long.toString(metrics_store_count)));
+        item.put(COMPLEXITY, new AttributeValue().withN(Integer.toString(complexity)));
 
         return item;
     }
-    private static int hashFunction(float windown_x, float windown_y, float windown_width,  float windown_height){
-       return  Objects.hash(windown_x, windown_y, windown_width, windown_height);
+    private static int hashFunction(float window_x, float window_y, float window_width,  float window_height){
+       return  Objects.hash(window_x, window_y, window_width, window_height);
     }
 
     public void CreateTable(){

@@ -18,6 +18,11 @@ public class Measures {
 		this.setLoadcount(0);
 		this.setStorecount(0);
 	}
+	public Measures(long basicBlockCount,long loadCount,long storeCount) {
+		this.setBasicBlockCount(basicBlockCount);
+		this.setLoadcount(loadCount);
+		this.setStorecount(storeCount);
+	}
 
 	public long getBasicBlockCount() {
 		return basicBlockCount;

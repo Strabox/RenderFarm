@@ -9,6 +9,7 @@ import renderfarm.autoscaler.AutoScaler;
 import renderfarm.loadbalancer.handlers.RequestHandler;
 import renderfarm.loadbalancer.loadbalancing.FilipeStyleLoadBalancing;
 import renderfarm.loadbalancer.loadbalancing.LoadBalancing;
+import dynamo.AmazonDynamoDB;
 
 /**
  * Main class to launch and hold our custom Load Balancer
@@ -23,6 +24,8 @@ public class LoadBalancerMain {
 	private static final int LOAD_BALANCER_PORT = 8000;
 	
 	private static RenderFarmInstanceManager instanceManager;
+
+	private static AmazonDynamoDB dynamoDB;
 	
 	//To change the load balancing style, change the object below.
 	private static final LoadBalancing loadBalacing = new FilipeStyleLoadBalancing();
@@ -34,8 +37,11 @@ public class LoadBalancerMain {
 		} else {
 			instanceManager = new RenderFarmInstanceManager(loadBalacing,false,null,null);
 		}
+		initDynamoDB();
 		initAutoScaler();
 		initLoadBalancer();
+		
+		
 	}
 	
 	/**
@@ -63,6 +69,9 @@ public class LoadBalancerMain {
 			e.printStackTrace();
 		}
 
+	}
+	private static void initDynamoDB(){
+		dynamoDB = new AmazonDynamoDB();
 	}
     
 }

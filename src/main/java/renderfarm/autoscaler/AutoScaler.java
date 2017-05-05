@@ -19,7 +19,7 @@ public class AutoScaler extends Thread {
 	/**
 	 * Initial number instance for our Rendering Farm.
 	 */
-	private static final int INITIAL_NUMBER_OF_INSTANCES = 2;
+	private static final int INITIAL_NUMBER_OF_INSTANCES = 1;
 	
 	/**
 	 * Interval between the auto scaling of Rendering Farm.
