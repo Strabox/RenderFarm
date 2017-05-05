@@ -113,6 +113,9 @@ public class AmazonDynamoDB{
         init();
         CreateTable();
     }
+    public AmazonDynamoDB(String foo ){
+        init();
+    }
 
     public void putItem(String file_name, float window_x, float window_y, float window_width, float window_height, long window_total_pixels_rendered,long metrics_basic_block_count, long metrics_load_count, long metrics_store_count, int complexity){
         int hash = hashFunction(window_x, window_y, window_width, window_height);
