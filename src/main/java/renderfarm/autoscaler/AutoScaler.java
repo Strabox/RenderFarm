@@ -19,17 +19,20 @@ public class AutoScaler extends Thread {
 	/**
 	 * Initial number instance for our Rendering Farm.
 	 */
-	private static final int INITIAL_NUMBER_OF_INSTANCES = 1;
+	private static final int INITIAL_NUMBER_OF_INSTANCES = 2;
 	
 	/**
 	 * Interval between the auto scaling of Rendering Farm.
 	 */
 	private static final int AUTO_SCALING_TIME_INTERVAL = 20000;
 	
+	private AutoScaling autoScaling;
+	
 	private RenderFarmInstanceManager instanceManager;
 	
 	public AutoScaler(RenderFarmInstanceManager instanceManager) {
 		this.instanceManager = instanceManager;
+		this.autoScaling = new BestAutoScaling(instanceManager);
 	}
 	
 	@Override
@@ -61,15 +64,9 @@ public class AutoScaler extends Thread {
 	       	 			instanceManager.removeRenderFarmInstance(instance.getInstanceId());
 	       	 		}
 	       	 	}
-	       	 	/*
-	       	 	 * Auto scaling algorithm 
-	       	 	 */
-	       	 	List<RenderFarmInstance> currentRenderFarmInstances = instanceManager.getCurrentInstances();
-	       	 	synchronized (currentRenderFarmInstances) {
-					for(RenderFarmInstance instance : currentRenderFarmInstances) {
-						//TODO Implement the auto scaling/descaling algorithm here
-					}
-				}
+	       	 	
+	       	 	autoScaling.autoScale();
+
 				System.out.println("[AUTOSCALER]Auto scaler algorithm ended.");
 				try {
 					Thread.sleep(AUTO_SCALING_TIME_INTERVAL);

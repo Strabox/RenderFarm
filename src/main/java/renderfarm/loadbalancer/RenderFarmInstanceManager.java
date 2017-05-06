@@ -18,6 +18,7 @@ import com.amazonaws.services.ec2.model.TerminateInstancesRequest;
 import com.amazonaws.services.ec2.model.TerminateInstancesResult;
 
 import renderfarm.loadbalancer.exceptions.NoInstancesToHandleRequest;
+import renderfarm.loadbalancer.exceptions.RedirectFailed;
 import renderfarm.loadbalancer.loadbalancing.LoadBalancing;
 
 import com.amazonaws.services.ec2.model.RunInstancesResult;
@@ -161,8 +162,9 @@ public class RenderFarmInstanceManager {
 	 * @param request Request that arrived to the load balancer handler
 	 * @return IP of the machine which will handle the request
 	 * @throws NoInstancesToHandleRequest 
+	 * @throws RedirectFailed 
 	 */
-	public String getHandlerInstanceIP(Request request) throws NoInstancesToHandleRequest{
+	public String getHandlerInstanceIP(Request request) throws NoInstancesToHandleRequest, RedirectFailed{
 		return loadBalancing.getFitestMachineIp(this, request);
 	}
 	
@@ -170,6 +172,7 @@ public class RenderFarmInstanceManager {
 	public String toString() {
 		String res = "============== ALL INSTANCES ================" + System.lineSeparator();
 		synchronized (currentInstances) {
+			res += "Number of Instance Running: " + currentInstances.size() + System.lineSeparator();
 			for(RenderFarmInstance instance: currentInstances) {
 				res += instance + System.lineSeparator();
 			}

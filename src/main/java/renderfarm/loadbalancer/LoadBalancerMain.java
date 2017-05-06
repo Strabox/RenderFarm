@@ -6,12 +6,11 @@ import java.util.concurrent.Executors;
 import com.sun.net.httpserver.HttpServer;
 
 import renderfarm.autoscaler.AutoScaler;
+import renderfarm.loadbalancer.handlers.FarmStatusHandler;
 import renderfarm.loadbalancer.handlers.RequestHandler;
 import renderfarm.loadbalancer.loadbalancing.FilipeStyleLoadBalancing;
 import renderfarm.loadbalancer.loadbalancing.LoadBalancing;
 import dynamo.AmazonDynamoDB;
-import renderfarm.util.Metric;
-import java.util.List;
 /**
  * Main class to launch and hold our custom Load Balancer
  * @author Andre
@@ -28,11 +27,9 @@ public class LoadBalancerMain {
 
 	private static AmazonDynamoDB dynamoDB;
 	
-	//To change the load balancing style, change the object below.
-	private static final LoadBalancing loadBalacing = new FilipeStyleLoadBalancing();
-	
 	public static void main(String[] args) throws InterruptedException, IOException {
 		System.out.println("Starting Load Balancer...");
+		LoadBalancing loadBalacing = new FilipeStyleLoadBalancing(dynamoDB);
 		if(args.length >= 2) {
 			instanceManager = new RenderFarmInstanceManager(loadBalacing,true,args[0],args[1]);
 		} else {
@@ -61,20 +58,23 @@ public class LoadBalancerMain {
 	 */
 	private static void initLoadBalancer() {
 		try {
-			System.out.print("Initializing load balancer request handler...\n");
+			System.out.println("Initializing load balancing algorithm");
+			System.out.println("Initializing load balancer request handler");
 			HttpServer server = HttpServer.create(new InetSocketAddress(LOAD_BALANCER_PORT), 0);
 			server.createContext("/r.html", new RequestHandler(instanceManager));
+			server.createContext("/FarmStatus", new FarmStatusHandler(instanceManager));
 			server.setExecutor(Executors.newCachedThreadPool());	//Warning: Unbounded thread limit
 			server.start();
 			System.out.println("Loadbalancer, listening on Port: " + LOAD_BALANCER_PORT);
 		} catch(IOException e) {
-			System.out.println("Problem starting Load Balancer web server");
+			System.out.println("Problem starting Load Balancer web server, exiting...");
 			e.printStackTrace();
+			System.exit(-1);
 		}
 
 	}
 	private static void initDynamoDB(){
-		dynamoDB = new AmazonDynamoDB();
+		//dynamoDB = new AmazonDynamoDB();
 	}
     
 }

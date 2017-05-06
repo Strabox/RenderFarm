@@ -61,11 +61,11 @@ public class NormalizedWindow {
 	}
 	
 	/**
-	 * Calculates the % of area that window overlapp the this window.
+	 * Normalized area that window overlapp the this window.
 	 * @param window
-	 * @return % of overlapping area
+	 * @return Normalized overlapping area
 	 */
-	public float percentageOfAreaOverlapping(NormalizedWindow window) {
+	public float normalizedAreaOverlapping(NormalizedWindow window) {
 		float maxX = Math.max(this.getX(), window.getX());
 		float maxY = Math.max(this.getY(), window.getY());
 		
@@ -75,8 +75,16 @@ public class NormalizedWindow {
 		if (newWidth <= 0f || newHeight <= 0f) {
 			return 0;
 		} else {
-			return (newWidth * newHeight) / (getHeight() * getWidth());
+			return (newWidth * newHeight);
 		}
+	}
+	
+	/**
+	 * Compute the area of the normalized window
+	 * @return Normalized area of the window
+	 */
+	public float getArea() {
+		return getWidth() * getHeight();
 	}
 	
 	public float getX() {

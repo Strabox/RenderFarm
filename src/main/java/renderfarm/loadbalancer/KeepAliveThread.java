@@ -7,7 +7,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import renderfarm.util.SystemConfiguration;
 
 public class KeepAliveThread extends Thread {
-
 	/**
 	 * Timeout to establish the connection with the instance.
 	 */

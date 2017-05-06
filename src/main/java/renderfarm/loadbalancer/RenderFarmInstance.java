@@ -2,8 +2,10 @@ package renderfarm.loadbalancer;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import renderfarm.loadbalancer.exceptions.InstanceCantReceiveMoreRequests;
 
 /**
  * Class represent a render farm instance of our system.
@@ -18,12 +20,27 @@ public class RenderFarmInstance {
 	public static final int STOPPING = 64; 
 	public static final int STOPPED = 80; 
 	
+	/**
+	 * Instance IP
+	 */
 	private String ip;
 	
+	/**
+	 * Instance ID
+	 */
 	private final String id;
 	
-	private List<Request> requestsInExecution;	//Thread Safe
+	/**
+	 * All the request running in the instance
+	 */
+	private final List<Request> requestsInExecution;	//Thread Safe
 
+	/**
+	 * true if the instance should stop accepting requests
+	 * false otherwise 
+	 */
+	private final AtomicBoolean stopReceiveRequests;
+	
 	/**
 	 * The estimate for our instance load
 	 */
@@ -33,10 +50,14 @@ public class RenderFarmInstance {
 		this.ip = null;
 		this.id = id;
 		this.loadLevel = 0;	//TODO set the initial load level
+		this.stopReceiveRequests = new AtomicBoolean(false);
 		this.requestsInExecution = Collections.synchronizedList(new ArrayList<Request>());
 	}
 	
-	public synchronized void addRequest(Request req) {
+	public synchronized void addRequest(Request req) throws InstanceCantReceiveMoreRequests {
+		if(stopReceiveRequests.get()) {
+			throw new InstanceCantReceiveMoreRequests();
+		}
 		requestsInExecution.add(req);
 		loadLevel += req.getWeight();
 	}
@@ -44,6 +65,14 @@ public class RenderFarmInstance {
 	public synchronized void removeRequest(Request req) {
 		requestsInExecution.remove(req);
 		loadLevel -= req.getWeight();
+	}
+	
+	public void stopReceivingRequests() {
+		stopReceiveRequests.set(true);
+	}
+	
+	public boolean stoppedFromReceivingRequests() {
+		return stopReceiveRequests.get();
 	}
 	
 	public synchronized int getLoadLevel() {
@@ -84,7 +113,7 @@ public class RenderFarmInstance {
 		}
 		//res += "Load Level: " + loadLevel.toString() + System.lineSeparator();
 		for(Request req : requestsInExecution) {
-			res += req;
+			res += req + System.lineSeparator();
 		}
 		res += System.lineSeparator();
 		res += "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$";
