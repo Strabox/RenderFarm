@@ -71,6 +71,10 @@ public class RenderFarmInstance {
 		stopReceiveRequests.set(true);
 	}
 	
+	public void continueReceivingRequests() {
+		stopReceiveRequests.set(false);
+	}
+	
 	public boolean stoppedFromReceivingRequests() {
 		return stopReceiveRequests.get();
 	}
