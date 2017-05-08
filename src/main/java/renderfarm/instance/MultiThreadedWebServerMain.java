@@ -7,6 +7,7 @@ import java.util.concurrent.Executors;
 
 import com.sun.net.httpserver.HttpServer;
 
+import dynamo.AmazonDynamoDB;
 import renderfarm.instance.handlers.HealthCheckHandler;
 import renderfarm.instance.handlers.RenderHandler;
 import renderfarm.util.Metric;
@@ -21,12 +22,20 @@ public class MultiThreadedWebServerMain {
 	
 	public static ConcurrentHashMap<Long,Metric> metricsGatherer = new ConcurrentHashMap<Long,Metric>();
 	
+	public static AmazonDynamoDB dynamoDB;
+	
 	/**
 	 * Method used to setup and start the webserver
 	 * @param args
 	 * @throws Exception
 	 */
     public static void main(String[] args) throws Exception {
+    	if(args.length == 2) {
+    		dynamoDB = new AmazonDynamoDB(args[0], args[1]);
+    	}
+    	else {
+    		dynamoDB = new AmazonDynamoDB(null, null);
+    	}
         HttpServer server = HttpServer.create(new InetSocketAddress(SystemConfiguration.RENDER_INSTANCE_PORT), 0);
         server.createContext("/r.html", new RenderHandler());
         server.createContext("/HealthCheck", new HealthCheckHandler());
@@ -39,6 +48,7 @@ public class MultiThreadedWebServerMain {
     	Metric metric = new Metric();
     	metricsGatherer.put(threadID, metric);	
     }
+     
     
 
 }

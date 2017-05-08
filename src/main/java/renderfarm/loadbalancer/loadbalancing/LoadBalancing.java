@@ -74,8 +74,25 @@ public abstract class LoadBalancing {
 		return metrics;
 	}
 	
-	private int getCostLevel(long valueUsedToMapComplexity) {
-		return 5;	//TODO Joao logic table
+	/**
+	 * Directly based on Joao calculation.
+	 * @param basicBlocks
+	 * @param loadCounts
+	 * @param storeCounts
+	 * @return
+	 */
+	private int getCostLevel(long basicBlocks, long loadCounts, long storeCounts) {
+		final long basicBlockReference = 42000000000L;
+		final long storeCountReference = 20000000000L;
+		final long loadCountReference = 20000000000L;
+		final float constant = 8.82905f;
+		double bb = Math.log10(basicBlockReference / (double) basicBlocks);
+		double lc = Math.log10(loadCountReference / (double) loadCounts);
+		double sc = Math.log10(storeCountReference / (double) storeCountReference);
+		double complexityLog = bb + lc + sc;
+		int res = (int) Math.round(10 - ((complexityLog / constant) * 10));
+		System.out.println("[GetCostLevel]Complexity level: " + res);
+		return res;
 	}
 	
 	/**
@@ -84,18 +101,18 @@ public abstract class LoadBalancing {
 	 * @param req Request to be processed
 	 */
 	private void estimateRequestComputationalCost(Request req) {
-		/*List<Metric> metricsStored = dynamoDB.getIntersectiveItems(req.getFile(), req.getNormalizedWindow().getX(),
+		/*
+		 * Getting the metrics from dynamoDB:
+		 * List<Metric> metricsStored = dynamoDB.getIntersectiveItems(req.getFile(), req.getNormalizedWindow().getX(),
 				req.getNormalizedWindow().getY(), req.getNormalizedWindow().getWidth(),
 				req.getNormalizedWindow().getHeight()); */
 		List<Metric> metricsStored = getOverlappingMetricsRequest();
 		Metric fitestMetric = null;
 		float fitestMetricScaleMultiplicationFactor = 0,fitestMetricPercentageAreaOverlappingMetric = 0,
 				fitestMetricPercentageAreaOverlappingRequest = 0;
-		long metricBasicBlock = 0, metricStoreCount = 0, metricLoadCount,metricBasicBlockAdjustedWithWindowScale = 0,
-				metricStoreCountAdjustedWithWindowScale = 0, metricLoadCountkAdjustedWithWindowScale = 0,
-				valueUsedToMapComplexity;
+		long metricBasicBlock = 0, metricStoreCount = 0, metricLoadCount = 0;
 		if(metricsStored.isEmpty()) {		//No metrics that have overlapping windows with ours
-			req.setWeight(6);				//TODO probably treat as medium cost IDK
+			req.setWeight(4);
 			return;
 		}
 		for(Metric metric : metricsStored) {
@@ -115,23 +132,16 @@ public abstract class LoadBalancing {
 			}
 		}
 		
-		metricBasicBlock = fitestMetric.getMeasures().getBasicBlockCount();
-		metricStoreCount = fitestMetric.getMeasures().getStorecount();
-		metricLoadCount = fitestMetric.getMeasures().getLoadcount();
+		//Obtain the measures from the selected metric and multiply it by the scale
+		metricBasicBlock = (long) (fitestMetric.getMeasures().getBasicBlockCount() * fitestMetricScaleMultiplicationFactor);
+		metricStoreCount = (long) (fitestMetric.getMeasures().getStorecount() * fitestMetricScaleMultiplicationFactor);
+		metricLoadCount = (long) (fitestMetric.getMeasures().getLoadcount() * fitestMetricScaleMultiplicationFactor);
 		
-		metricBasicBlockAdjustedWithWindowScale = (long) (metricBasicBlock * fitestMetricScaleMultiplicationFactor);
-		metricStoreCountAdjustedWithWindowScale = (long) (metricStoreCount * fitestMetricScaleMultiplicationFactor);
-		metricLoadCountkAdjustedWithWindowScale = (long) (metricLoadCount * fitestMetricScaleMultiplicationFactor);
-		
-		long defaultComplexityLevelForNotOverlappingAreaOfRequest = 1000000;	//TODO
-		
-		valueUsedToMapComplexity = (long) (metricBasicBlockAdjustedWithWindowScale * fitestMetricPercentageAreaOverlappingMetric +
-				metricStoreCountAdjustedWithWindowScale * fitestMetricPercentageAreaOverlappingMetric + 
-				metricLoadCountkAdjustedWithWindowScale * fitestMetricPercentageAreaOverlappingMetric +
-				defaultComplexityLevelForNotOverlappingAreaOfRequest * fitestMetricPercentageAreaOverlappingRequest);
-		
-		
-		req.setWeight(getCostLevel(valueUsedToMapComplexity));
+		final int defaultCost = 4;
+		float finalWeight = (getCostLevel(metricBasicBlock,metricLoadCount,metricStoreCount) * fitestMetricPercentageAreaOverlappingMetric)
+				+ (defaultCost * (1 - fitestMetricPercentageAreaOverlappingRequest));
+		System.out.println("[EstimateRequestCost]" + Math.round(finalWeight));
+		req.setWeight(Math.round(finalWeight));
 	}
 	
 }

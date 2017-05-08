@@ -32,10 +32,11 @@ public class LoadBalancerMain {
 		LoadBalancing loadBalacing = new FilipeStyleLoadBalancing(dynamoDB);
 		if(args.length >= 2) {
 			instanceManager = new RenderFarmInstanceManager(loadBalacing,true,args[0],args[1]);
+			dynamoDB = new AmazonDynamoDB(args[0],args[1]);
 		} else {
 			instanceManager = new RenderFarmInstanceManager(loadBalacing,false,null,null);
+			dynamoDB = new AmazonDynamoDB(null,null);
 		}
-		initDynamoDB();
 		initAutoScaler();
 		initLoadBalancer();
 		/*dynamoDB.putItem("file1.txt", (float) 0.5,(float) 0.5,(float) 0.5,(float) 0.5, (long)1000000,300000000000000000L,(long)2000000,(long)222222222, 5);
@@ -72,9 +73,6 @@ public class LoadBalancerMain {
 			System.exit(-1);
 		}
 
-	}
-	private static void initDynamoDB(){
-		//dynamoDB = new AmazonDynamoDB();
 	}
     
 }

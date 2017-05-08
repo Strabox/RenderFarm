@@ -45,7 +45,7 @@ public class RenderFarmInstanceManager {
 	private List<RenderFarmInstance> currentInstances;	//Thread Safe
 	
 	//Object that implements the load balancing logic
-	private LoadBalancing loadBalancing;	//Thread Safe
+	private LoadBalancing loadBalancing;				//Thread Safe
 	
 	public RenderFarmInstanceManager(LoadBalancing loadBalacing,boolean directCredentials,
 			String accessId,String accessKey) {

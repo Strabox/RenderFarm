@@ -19,13 +19,11 @@ import java.util.*;
 public class InstrumentRaytracer {  
 	
 	private static final String METRICS_LOG_FILENAME = "output.txt";
-	private static AmazonDynamoDB dynamoDB;
 	
     /* main reads in all the files class files present in the input directory,
      * instruments them, and outputs them to the specified output directory.
      */
     public static void main(String argv[]) {
-    	initDynamoDB();
     	System.out.println("Instrumenting...");
     	ArrayList<String> files = new ArrayList<String>();
 
@@ -113,7 +111,7 @@ public class InstrumentRaytracer {
 		bw.flush();
 		bw.close();
 		fw.close();*/
-		dynamoDB.putItem(requestMetrics.getFileName(), requestMetrics.getNormalizedWindow().getX(),requestMetrics.getNormalizedWindow().getY(),
+		MultiThreadedWebServerMain.dynamoDB.putItem(requestMetrics.getFileName(), requestMetrics.getNormalizedWindow().getX(),requestMetrics.getNormalizedWindow().getY(),
 			requestMetrics.getNormalizedWindow().getWidth(),requestMetrics.getNormalizedWindow().getHeight(), 
 			requestMetrics.getTotalPixelsRendered(),requestMetrics.getMeasures().getBasicBlockCount(),
 			requestMetrics.getMeasures().getLoadcount(),requestMetrics.getMeasures().getStorecount(), 5);
@@ -135,8 +133,6 @@ public class InstrumentRaytracer {
 		else
 			measures.incrementStoreCount();;
 	}
-	private static void initDynamoDB(){
-		dynamoDB = new AmazonDynamoDB("false");
-	}
+    
     
 }

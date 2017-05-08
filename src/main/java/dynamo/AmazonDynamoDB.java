@@ -13,6 +13,7 @@ import renderfarm.util.Measures;
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.auth.profile.ProfileCredentialsProvider;
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
@@ -53,7 +54,6 @@ public class AmazonDynamoDB{
      *      To avoid accidental leakage of your credentials, DO NOT keep
      *      the credentials file in your source directory.
      */
-
     private static final String TABLE_NAME="metrics-table";
     private static final String TABLE_PARTION_KEY="file_name";
     private static final String TABLE_SORT_KEY="metrics_hash";
@@ -69,13 +69,7 @@ public class AmazonDynamoDB{
     private static final String METRICS_STORE_COUNT = "metrics_store_count";
     private static final String COMPLEXITY = "complexity";
 
-
-
-
-
-
     private AmazonDynamoDBClient dynamoDB;
-
 
     /**
      * The only information needed to create a client are security credentials
@@ -88,7 +82,7 @@ public class AmazonDynamoDB{
      * @see com.amazonaws.auth.ProfilesConfigFile
      * @see com.amazonaws.ClientConfiguration
      */
-    private void init(){
+    private void init(boolean directCredentials,String id,String key){
         /*
          * The ProfileCredentialsProvider will return your [default]
          * credential profile by reading from the credentials file located at
@@ -96,7 +90,7 @@ public class AmazonDynamoDB{
          */
         AWSCredentials credentials = null;
         try {
-            credentials = new ProfileCredentialsProvider().getCredentials();
+            credentials = obtainCredentials(directCredentials,id,key);
         } catch (Exception e) {
             throw new AmazonClientException(
                     "Cannot load the credentials from the credential profiles file. " +
@@ -109,13 +103,23 @@ public class AmazonDynamoDB{
         dynamoDB.setRegion(usWest2);
     }
 
-    public AmazonDynamoDB(){
-        init();
+    private AWSCredentials obtainCredentials(boolean directCredentials,String accessId,String accessKey) {
+		if(directCredentials) {
+			return new BasicAWSCredentials(accessId,accessKey);
+		} else {
+			return new ProfileCredentialsProvider().getCredentials();
+		}
+	}
+    
+    public AmazonDynamoDB(String id, String key){
+    	if(id != null && key != null) {
+    		init(true,id,key);
+    	} else {
+    		init(false,null,null);
+    	}
         CreateTable();
     }
-    public AmazonDynamoDB(String foo ){
-        init();
-    }
+ 
 
     public void putItem(String file_name, float window_x, float window_y, float window_width, float window_height, long window_total_pixels_rendered,long metrics_basic_block_count, long metrics_load_count, long metrics_store_count, int complexity){
         int hash = hashFunction(window_x, window_y, window_width, window_height);
