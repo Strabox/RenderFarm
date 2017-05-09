@@ -12,7 +12,7 @@ import renderfarm.loadbalancer.Request;
  */
 public final class BestLoadBalancing extends LoadBalancing {
 
-	private static final MAXIMUM_LOAD=8;
+	private static final int MAXIMUM_LOAD=8;
 
 	public BestLoadBalancing(AmazonDynamoDB dynamoDB) {
 		super(dynamoDB);
