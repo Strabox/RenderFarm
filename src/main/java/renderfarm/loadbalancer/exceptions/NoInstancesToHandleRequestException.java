@@ -1,6 +1,6 @@
 package renderfarm.loadbalancer.exceptions;
 
-public class NoInstancesToHandleRequest extends Exception {
+public class NoInstancesToHandleRequestException extends Exception {
 
 	/**
 	 * 

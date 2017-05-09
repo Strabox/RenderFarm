@@ -63,11 +63,10 @@ public class AmazonDynamoDB{
     private static final String WINDOW_HEIGHT = "window_height";
     private static final String WINDOW_Y_PLUS_WINDOW_HEIGHT = "window_y_plus_window_height";
     private static final String WINDOW_X_PLUS_WINDOW_WIDTH = "window_x_plus_window_width";
-    private static final String WINDOW_TOTAL_PIXELS_RENDERED = "window_total_pixels_rendered";
+    private static final String SCENE_PIXELS_RESOLUTION = "scene_pixels_resolution";
     private static final String METRICS_BASIC_BLOCK_COUNT = "metrics_basic_block_count";
     private static final String METRICS_LOAD_COUNT = "metrics_load_count";
     private static final String METRICS_STORE_COUNT = "metrics_store_count";
-    private static final String COMPLEXITY = "complexity";
 
     private AmazonDynamoDBClient dynamoDB;
 
@@ -82,7 +81,8 @@ public class AmazonDynamoDB{
      * @see com.amazonaws.auth.ProfilesConfigFile
      * @see com.amazonaws.ClientConfiguration
      */
-    private void init(boolean directCredentials,String id,String key){
+    @SuppressWarnings("deprecation")
+	private void init(boolean directCredentials,String id,String key){
         /*
          * The ProfileCredentialsProvider will return your [default]
          * credential profile by reading from the credentials file located at
@@ -121,66 +121,72 @@ public class AmazonDynamoDB{
     }
  
 
-    public void putItem(String file_name, float window_x, float window_y, float window_width, float window_height, long window_total_pixels_rendered,long metrics_basic_block_count, long metrics_load_count, long metrics_store_count, int complexity){
+    public void putItem(String file_name, float window_x, float window_y, float window_width,
+    		float window_height, long scene_pixels_resolution,long metrics_basic_block_count,
+    		long metrics_load_count, long metrics_store_count){
         int hash = hashFunction(window_x, window_y, window_width, window_height);
-        Map<String, AttributeValue> item = newItem( file_name, hash, window_x, window_y, window_width, window_height,window_total_pixels_rendered,metrics_basic_block_count,metrics_load_count,metrics_store_count,complexity);
+        Map<String, AttributeValue> item = newItem( file_name, hash, window_x, window_y, window_width,
+        		window_height,scene_pixels_resolution,metrics_basic_block_count,
+        		metrics_load_count,metrics_store_count);
         PutItemRequest putItemRequest = new PutItemRequest(TABLE_NAME, item);
         PutItemResult putItemResult = dynamoDB.putItem(putItemRequest);
         System.out.println("Result: " + putItemResult);
 
     }
 
-  public List<Metric> getIntersectiveItems(String file_name, float window_x, float window_y, float window_width, float window_height){
+  public List<Metric> getIntersectiveItems(String file_name, float window_x, float window_y,
+		  float window_width, float window_height){
         HashMap<String, Condition> scanFilter = new HashMap<String, Condition>();
-            Condition condition = new Condition()
-                .withComparisonOperator(ComparisonOperator.LE.toString())
-                .withAttributeValueList(new AttributeValue().withN(Float.toString(window_x+window_width)));
-            scanFilter.put(WINDOW_X, condition);
-            Condition condition2 = new Condition()
-                .withComparisonOperator(ComparisonOperator.GE.toString())
-                .withAttributeValueList(new AttributeValue().withN(Float.toString(window_y+window_height)));
-            scanFilter.put(WINDOW_Y, condition2);
-            Condition condition3 = new Condition()
-                .withComparisonOperator(ComparisonOperator.LE.toString())
-                .withAttributeValueList(new AttributeValue().withN(Float.toString(window_y)));
-            scanFilter.put(WINDOW_Y_PLUS_WINDOW_HEIGHT, condition3);
-            Condition condition4 = new Condition()
-                .withComparisonOperator(ComparisonOperator.LE.toString())
-                .withAttributeValueList(new AttributeValue().withN(Float.toString(window_x)));
-            scanFilter.put(WINDOW_X_PLUS_WINDOW_WIDTH, condition4);
-            /*Condition condition5 = new Condition()
-                .withComparisonOperator(ComparisonOperator.EQ.toString())
-                .withAttributeValueList(new AttributeValue().withS(file_name));
-            scanFilter.put(TABLE_PARTION_KEY, condition5);*/
-            ScanRequest scanRequest = new ScanRequest(TABLE_NAME).withScanFilter(scanFilter);
-            scanRequest.setConditionalOperator(ConditionalOperator.OR);
-            ScanResult scanResult = dynamoDB.scan(scanRequest);
-            List<Map<String,AttributeValue>> info = scanResult.getItems();
-            List<Metric> result= new ArrayList();
-            for(int i= 0; i<info.size();i++){
-                Map<String,AttributeValue> pre_metric=info.get(i);
-                String fileName= pre_metric.get(TABLE_PARTION_KEY).getS();
-                if(fileName.equals(file_name)){
-                    float windowX = Float.parseFloat(pre_metric.get(WINDOW_X).getN());
-                    float windowY= Float.parseFloat(pre_metric.get(WINDOW_Y).getN());
-                    float windowHeight= Float.parseFloat(pre_metric.get(WINDOW_HEIGHT).getN());
-                    float windowWidth= Float.parseFloat(pre_metric.get(WINDOW_WIDTH).getN());
-                    NormalizedWindow window = new NormalizedWindow (windowX,windowY,windowWidth,windowHeight);
-                    long metrics_basic_block_count= Long.parseLong(pre_metric.get(METRICS_BASIC_BLOCK_COUNT).getS());
-                    long metrics_load_count= Long.parseLong(pre_metric.get(METRICS_LOAD_COUNT).getS());
-                    long metrics_store_count= Long.parseLong(pre_metric.get(METRICS_STORE_COUNT).getS());
-                    Measures measure = new Measures(metrics_basic_block_count,metrics_load_count,metrics_store_count);
-                    long window_total_pixels_rendered= Long.parseLong(pre_metric.get(WINDOW_TOTAL_PIXELS_RENDERED).getS());
-                    int complexity=Integer.parseInt(pre_metric.get(COMPLEXITY).getN());
-                    Metric metric = new Metric(fileName,window,window_total_pixels_rendered,measure,complexity);
-                    result.add(metric);
-                }
+        Condition condition = new Condition()
+            .withComparisonOperator(ComparisonOperator.LE.toString())
+            .withAttributeValueList(new AttributeValue().withN(Float.toString(window_x+window_width)));
+        scanFilter.put(WINDOW_X, condition);
+        Condition condition2 = new Condition()
+            .withComparisonOperator(ComparisonOperator.GE.toString())
+            .withAttributeValueList(new AttributeValue().withN(Float.toString(window_y+window_height)));
+        scanFilter.put(WINDOW_Y, condition2);
+        Condition condition3 = new Condition()
+            .withComparisonOperator(ComparisonOperator.LE.toString())
+            .withAttributeValueList(new AttributeValue().withN(Float.toString(window_y)));
+        scanFilter.put(WINDOW_Y_PLUS_WINDOW_HEIGHT, condition3);
+        Condition condition4 = new Condition()
+            .withComparisonOperator(ComparisonOperator.LE.toString())
+            .withAttributeValueList(new AttributeValue().withN(Float.toString(window_x)));
+        scanFilter.put(WINDOW_X_PLUS_WINDOW_WIDTH, condition4);
+        /*Condition condition5 = new Condition()
+            .withComparisonOperator(ComparisonOperator.EQ.toString())
+            .withAttributeValueList(new AttributeValue().withS(file_name));
+        scanFilter.put(TABLE_PARTION_KEY, condition5);*/
+        ScanRequest scanRequest = new ScanRequest(TABLE_NAME).withScanFilter(scanFilter);
+        scanRequest.setConditionalOperator(ConditionalOperator.OR);
+        ScanResult scanResult = dynamoDB.scan(scanRequest);
+        List<Map<String,AttributeValue>> info = scanResult.getItems();
+        List<Metric> result= new ArrayList<Metric>();
+        for(int i= 0; i<info.size();i++){
+            Map<String,AttributeValue> pre_metric=info.get(i);
+            String fileName= pre_metric.get(TABLE_PARTION_KEY).getS();
+            if(fileName.equals(file_name)){
+                float windowX = Float.parseFloat(pre_metric.get(WINDOW_X).getN());
+                float windowY= Float.parseFloat(pre_metric.get(WINDOW_Y).getN());
+                float windowHeight= Float.parseFloat(pre_metric.get(WINDOW_HEIGHT).getN());
+                float windowWidth= Float.parseFloat(pre_metric.get(WINDOW_WIDTH).getN());
+                NormalizedWindow window = new NormalizedWindow (windowX,windowY,windowWidth,windowHeight);
+                long metrics_basic_block_count= Long.parseLong(pre_metric.get(METRICS_BASIC_BLOCK_COUNT).getS());
+                long metrics_load_count= Long.parseLong(pre_metric.get(METRICS_LOAD_COUNT).getS());
+                long metrics_store_count= Long.parseLong(pre_metric.get(METRICS_STORE_COUNT).getS());
+                Measures measure = new Measures(metrics_basic_block_count,metrics_load_count,metrics_store_count);
+                long scene_pixels_resolution= Long.parseLong(pre_metric.get(SCENE_PIXELS_RESOLUTION).getS());
+                Metric metric = new Metric(fileName,window,scene_pixels_resolution,measure);
+                result.add(metric);
             }
-            return result;
-
+        }
+        return result;
     }
 
-    private static Map<String, AttributeValue> newItem(String file_name,int hash, float window_x, float window_y, float window_width, float window_height, long window_total_pixels_rendered,long metrics_basic_block_count, long metrics_load_count, long metrics_store_count, int complexity){
+    private static Map<String, AttributeValue> newItem(String file_name,int hash,
+    		float window_x, float window_y, float window_width, float window_height,
+    		long scene_pixels_resolution,long metrics_basic_block_count,
+    		long metrics_load_count, long metrics_store_count){
         Map<String, AttributeValue> item = new HashMap<String, AttributeValue>();
         item.put(TABLE_PARTION_KEY, new AttributeValue(file_name));
         item.put(TABLE_SORT_KEY, new AttributeValue().withN(Integer.toString(hash)));
@@ -190,15 +196,15 @@ public class AmazonDynamoDB{
         item.put(WINDOW_Y_PLUS_WINDOW_HEIGHT,new AttributeValue().withN(Float.toString(window_y + window_height)));
         item.put(WINDOW_HEIGHT, new AttributeValue().withN(Float.toString(window_height)));
         item.put(WINDOW_WIDTH, new AttributeValue().withN(Float.toString(window_width)));
-        item.put(WINDOW_TOTAL_PIXELS_RENDERED, new AttributeValue().withS(Long.toString(window_total_pixels_rendered)));
+        item.put(SCENE_PIXELS_RESOLUTION, new AttributeValue().withS(Long.toString(scene_pixels_resolution)));
         item.put(METRICS_BASIC_BLOCK_COUNT, new AttributeValue().withS(Long.toString(metrics_basic_block_count)));
         item.put(METRICS_LOAD_COUNT, new AttributeValue().withS(Long.toString(metrics_load_count)));
         item.put(METRICS_STORE_COUNT, new AttributeValue().withS(Long.toString(metrics_store_count)));
-        item.put(COMPLEXITY, new AttributeValue().withN(Integer.toString(complexity)));
-
         return item;
     }
-    private static int hashFunction(float window_x, float window_y, float window_width,  float window_height){
+    
+    private static int hashFunction(float window_x, float window_y, float window_width,
+    		float window_height){
        return  Objects.hash(window_x, window_y, window_width, window_height);
     }
 
@@ -242,79 +248,6 @@ public class AmazonDynamoDB{
             System.out.println("Error: " );
             e.printStackTrace();
         }
-        
-
     }
-
-/*
-    public static void main(String[] args) throws Exception {
-        init();
-
-        try {
-            String tableName = "my-favorite-movies-table";
-
-            // Create a table with a primary hash key named 'name', which holds a string
-            CreateTableRequest createTableRequest = new CreateTableRequest().withTableName(tableName)
-                .withKeySchema(new KeySchemaElement().withAttributeName("name").withKeyType(KeyType.HASH))
-                .withAttributeDefinitions(new AttributeDefinition().withAttributeName("name").withAttributeType(ScalarAttributeType.S))
-                .withProvisionedThroughput(new ProvisionedThroughput().withReadCapacityUnits(1L).withWriteCapacityUnits(1L));
-
-            // Create table if it does not exist yet
-            TableUtils.createTableIfNotExists(dynamoDB, createTableRequest);
-            // wait for the table to move into ACTIVE state
-            TableUtils.waitUntilActive(dynamoDB, tableName);
-
-            // Describe our new table
-            DescribeTableRequest describeTableRequest = new DescribeTableRequest().withTableName(tableName);
-            TableDescription tableDescription = dynamoDB.describeTable(describeTableRequest).getTable();
-            System.out.println("Table Description: " + tableDescription);
-
-            // Add an item
-            Map<String, AttributeValue> item = newItem("Bill & Ted's Excellent Adventure", 1989, "****", "James", "Sara");
-            PutItemRequest putItemRequest = new PutItemRequest(tableName, item);
-            PutItemResult putItemResult = dynamoDB.putItem(putItemRequest);
-            System.out.println("Result: " + putItemResult);
-
-            // Add another item
-            item = newItem("Airplane", 1980, "*****", "James", "Billy Bob");
-            putItemRequest = new PutItemRequest(tableName, item);
-            putItemResult = dynamoDB.putItem(putItemRequest);
-            System.out.println("Result: " + putItemResult);
-
-            // Scan items for movies with a year attribute greater than 1985
-            HashMap<String, Condition> scanFilter = new HashMap<String, Condition>();
-            Condition condition = new Condition()
-                .withComparisonOperator(ComparisonOperator.GT.toString())
-                .withAttributeValueList(new AttributeValue().withN("1985"));
-            scanFilter.put("year", condition);
-            ScanRequest scanRequest = new ScanRequest(tableName).withScanFilter(scanFilter);
-            ScanResult scanResult = dynamoDB.scan(scanRequest);
-            System.out.println("Result: " + scanResult);
-
-        } catch (AmazonServiceException ase) {
-            System.out.println("Caught an AmazonServiceException, which means your request made it "
-                    + "to AWS, but was rejected with an error response for some reason.");
-            System.out.println("Error Message:    " + ase.getMessage());
-            System.out.println("HTTP Status Code: " + ase.getStatusCode());
-            System.out.println("AWS Error Code:   " + ase.getErrorCode());
-            System.out.println("Error Type:       " + ase.getErrorType());
-            System.out.println("Request ID:       " + ase.getRequestId());
-        } catch (AmazonClientException ace) {
-            System.out.println("Caught an AmazonClientException, which means the client encountered "
-                    + "a serious internal problem while trying to communicate with AWS, "
-                    + "such as not being able to access the network.");
-            System.out.println("Error Message: " + ace.getMessage());
-        }
-    }
-
-    private static Map<String, AttributeValue> newItem(String name, int year, String rating, String... fans) {
-        Map<String, AttributeValue> item = new HashMap<String, AttributeValue>();
-        item.put("name", new AttributeValue(name));
-        item.put("year", new AttributeValue().withN(Integer.toString(year)));
-        item.put("rating", new AttributeValue(rating));
-        item.put("fans", new AttributeValue().withSS(fans));
-
-        return item;
-    }*/
 
 }

@@ -20,7 +20,7 @@ public class BestAutoScaling extends AutoScaling {
 	public void autoScale() {
    	 	List<RenderFarmInstance> currentRenderFarmInstances = instanceManager.getCurrentInstances();
    	 	synchronized (currentRenderFarmInstances) {
-			for(RenderFarmInstance instance : currentRenderFarmInstances) {
+			for(@SuppressWarnings("unused") RenderFarmInstance instance : currentRenderFarmInstances) {
 				//TODO Implement the auto scaling/descaling algorithm here
 			}
 		}

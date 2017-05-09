@@ -7,9 +7,9 @@ import dynamo.AmazonDynamoDB;
 import renderfarm.loadbalancer.RenderFarmInstance;
 import renderfarm.loadbalancer.RenderFarmInstanceManager;
 import renderfarm.loadbalancer.Request;
-import renderfarm.loadbalancer.exceptions.InstanceCantReceiveMoreRequests;
-import renderfarm.loadbalancer.exceptions.NoInstancesToHandleRequest;
-import renderfarm.loadbalancer.exceptions.RedirectFailed;
+import renderfarm.loadbalancer.exceptions.InstanceCantReceiveMoreRequestsException;
+import renderfarm.loadbalancer.exceptions.NoInstancesToHandleRequestException;
+import renderfarm.loadbalancer.exceptions.RedirectFailedException;
 import renderfarm.util.Measures;
 import renderfarm.util.Metric;
 import renderfarm.util.NormalizedWindow;
@@ -37,25 +37,25 @@ public abstract class LoadBalancing {
 	 * @param req Actual request
 	 * @return Render farm instance selected to handle the request
 	 */
-	protected abstract RenderFarmInstance getFitestMachineAlgorithm(RenderFarmInstanceManager im,Request req) throws NoInstancesToHandleRequest;
+	protected abstract RenderFarmInstance getFitestMachineAlgorithm(RenderFarmInstanceManager im,Request req) throws NoInstancesToHandleRequestException;
 	
 	/**
 	 * Method to get the machine IP to handle the request
 	 * @param im Manager of render farms instances
 	 * @param req Actual request
 	 * @return Render farm instance IP selected to handle the request
-	 * @throws NoInstancesToHandleRequest 
-	 * @throws RedirectFailed 
+	 * @throws NoInstancesToHandleRequestException 
+	 * @throws RedirectFailedException 
 	 */
 	public RenderFarmInstance getFitestMachine(RenderFarmInstanceManager im,Request req) 
-			throws NoInstancesToHandleRequest, RedirectFailed {
+			throws NoInstancesToHandleRequestException, RedirectFailedException {
 		RenderFarmInstance chosenInstance;
 		estimateRequestComputationalCost(req);
 		chosenInstance = getFitestMachineAlgorithm(im, req);
 		try {
 			chosenInstance.addRequest(req);
-		} catch (InstanceCantReceiveMoreRequests e) {
-			throw new RedirectFailed();
+		} catch (InstanceCantReceiveMoreRequestsException e) {
+			throw new RedirectFailedException();
 		}
 		return chosenInstance;
 	}
@@ -100,7 +100,7 @@ public abstract class LoadBalancing {
 		long metricBasicBlock = 0, metricStoreCount = 0, metricLoadCount = 0;
 		System.out.println("[EstimateRequestCost]Searching in " + metricsStored.size() + " metrics");
 		for(Metric metric : metricsStored) {
-			float requestScaleMultiplicationFactor = req.getTotalPixelsRendered() / (float) metric.getTotalPixelsRendered();
+			float requestScaleMultiplicationFactor = req.getScenePixelsResolution() / (float) metric.getScenePixelsResolution();
 			float normalizedAreaOverlapping = req.getNormalizedWindow().normalizedAreaOverlapping(metric.getNormalizedWindow());
 			float percentageAreaOverlappingRequest = normalizedAreaOverlapping / req.getNormalizedWindow().getArea();
 			float percentageAreaOverlappingMetric = normalizedAreaOverlapping / metric.getNormalizedWindow().getArea();

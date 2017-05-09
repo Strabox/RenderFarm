@@ -17,8 +17,8 @@ import com.amazonaws.services.ec2.model.RunInstancesRequest;
 import com.amazonaws.services.ec2.model.TerminateInstancesRequest;
 import com.amazonaws.services.ec2.model.TerminateInstancesResult;
 
-import renderfarm.loadbalancer.exceptions.NoInstancesToHandleRequest;
-import renderfarm.loadbalancer.exceptions.RedirectFailed;
+import renderfarm.loadbalancer.exceptions.NoInstancesToHandleRequestException;
+import renderfarm.loadbalancer.exceptions.RedirectFailedException;
 import renderfarm.loadbalancer.loadbalancing.LoadBalancing;
 
 import com.amazonaws.services.ec2.model.RunInstancesResult;
@@ -33,9 +33,9 @@ import com.amazonaws.services.ec2.model.InstanceStateChange;
 public class RenderFarmInstanceManager {
 
 	private static final Regions AVAILABILITY_ZONE = Regions.US_WEST_2;
-	private static final String SECURITY_GROUP = "CNV-ssh+http";
-	private static final String RENDER_IMAGE_ID = "ami-276df747";
 	private static final String RENDER_INSTANCE_TYPE = "t2.micro";
+	private static final String SECURITY_GROUP = "cnv-ssh+http";
+	private static final String RENDER_IMAGE_ID = "ami-71345111";
 	private static final String RENDER_KEY_PAIR_NAME = "PROJECT_FINAL_KEY";
 	
 	//AmazonEC2 API Object
@@ -161,10 +161,10 @@ public class RenderFarmInstanceManager {
 	 * Get the IP of the "best" machine to handle the request (Load Balancing logic)
 	 * @param request Request that arrived to the load balancer handler
 	 * @return IP of the machine which will handle the request
-	 * @throws NoInstancesToHandleRequest 
-	 * @throws RedirectFailed 
+	 * @throws NoInstancesToHandleRequestException 
+	 * @throws RedirectFailedException 
 	 */
-	public RenderFarmInstance getHandlerInstanceIP(Request request) throws NoInstancesToHandleRequest, RedirectFailed{
+	public RenderFarmInstance getHandlerInstanceIP(Request request) throws NoInstancesToHandleRequestException, RedirectFailedException{
 		return loadBalancing.getFitestMachine(this, request);
 	}
 	

@@ -2,8 +2,6 @@ import BIT.highBIT.*;
 import renderfarm.instance.MultiThreadedWebServerMain;
 import renderfarm.util.Measures;
 import renderfarm.util.Metric;
-import dynamo.AmazonDynamoDB;
-
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -18,6 +16,7 @@ import java.util.*;
  */
 public class InstrumentRaytracer {  
 	
+	@SuppressWarnings("unused")
 	private static final String METRICS_LOG_FILENAME = "output.txt";
 	
     /* main reads in all the files class files present in the input directory,
@@ -113,8 +112,8 @@ public class InstrumentRaytracer {
 		fw.close();*/
 		MultiThreadedWebServerMain.dynamoDB.putItem(requestMetrics.getFileName(), requestMetrics.getNormalizedWindow().getX(),requestMetrics.getNormalizedWindow().getY(),
 			requestMetrics.getNormalizedWindow().getWidth(),requestMetrics.getNormalizedWindow().getHeight(), 
-			requestMetrics.getTotalPixelsRendered(),requestMetrics.getMeasures().getBasicBlockCount(),
-			requestMetrics.getMeasures().getLoadcount(),requestMetrics.getMeasures().getStorecount(), 5);
+			requestMetrics.getScenePixelsResolution(),requestMetrics.getMeasures().getBasicBlockCount(),
+			requestMetrics.getMeasures().getLoadcount(),requestMetrics.getMeasures().getStorecount());
 
 		requestMetrics.reset();
     }

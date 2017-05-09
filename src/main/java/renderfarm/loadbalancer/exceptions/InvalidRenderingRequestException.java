@@ -1,6 +1,6 @@
 package renderfarm.loadbalancer.exceptions;
 
-public class InvalidRenderingRequest extends Exception {
+public class InvalidRenderingRequestException extends Exception {
 
 	/**
 	 * 

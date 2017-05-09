@@ -1,6 +1,6 @@
 package renderfarm.loadbalancer.exceptions;
 
-public class RedirectFailed extends Exception {
+public class RedirectFailedException extends Exception {
 
 	/**
 	 * 

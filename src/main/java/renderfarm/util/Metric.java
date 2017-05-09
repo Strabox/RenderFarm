@@ -1,29 +1,39 @@
 package renderfarm.util;
 
 /**
- * Metric for each request. 
+ * Metric for a given scene and window rendered. 
  * @author Andre
  *
  */
 public class Metric {
 
+	/**
+	 * File name that represents the scene of the metric
+	 */
 	private String fileName;
 	
+	/**
+	 * Normalized window that the metric correspond
+	 */
 	private NormalizedWindow normalizedWindow;
 	
-	private long totalPixelsRendered;
+	/**
+	 * Scene pixels resolution of the metric
+	 */
+	private long scenePixelsResolution;
 	
+	/**
+	 * All the measures for this metric
+	 */
 	private Measures measures;
 
-	private int complexity;
 
 	public Metric(String fileName, NormalizedWindow normalizedWindow, 
-			long totalPixelsRendered, Measures measures, int complexity) {
+			long scenePixelsResolution, Measures measures) {
 		this.fileName = fileName;
 		this.normalizedWindow = normalizedWindow;
-		this.totalPixelsRendered = totalPixelsRendered;
+		this.scenePixelsResolution = scenePixelsResolution;
 		this.measures = measures;
-		this.complexity=complexity;
 	}
 	
 	public Metric() {
@@ -52,16 +62,12 @@ public class Metric {
 		return normalizedWindow;
 	}
 
-	public long getTotalPixelsRendered() {
-		return totalPixelsRendered;
+	public long getScenePixelsResolution() {
+		return this.scenePixelsResolution;
 	}
 
 	public Measures getMeasures() {
 		return measures;
-	}
-
-	public int getComplexity() {
-		return complexity;
 	}
 
 	public void setNormalizedWindow(NormalizedWindow normalizedWindow) {
@@ -69,7 +75,7 @@ public class Metric {
 	}
 
 	public void setTotalPixelsRendered(long totalPixelsRendered) {
-		this.totalPixelsRendered = totalPixelsRendered;
+		this.scenePixelsResolution = totalPixelsRendered;
 	}
 
 	public void setMeasures(Measures measures) {
@@ -82,9 +88,8 @@ public class Metric {
 		res += "===============================================================" + System.lineSeparator();
 		res += "File Name: " + fileName + System.lineSeparator();
 		res += "Normalized Window: " + normalizedWindow + System.lineSeparator();
-		res += "Total Pixels Rendered: " + totalPixelsRendered + System.lineSeparator();
+		res += "Total Pixels Rendered: " + scenePixelsResolution + System.lineSeparator();
 		res += "Measures: " + System.lineSeparator() + measures + System.lineSeparator();
-		res += "Complexity: " + complexity + System.lineSeparator();
 		res += "===============================================================" + System.lineSeparator();
 		return res;
 	}

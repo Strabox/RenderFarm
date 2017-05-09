@@ -1,5 +1,6 @@
 package renderfarm.loadbalancer.loadbalancing;
 
+import java.util.Collections;
 import java.util.List;
 
 import dynamo.AmazonDynamoDB;
@@ -25,7 +26,8 @@ public final class BestLoadBalancing extends LoadBalancing {
 		List<RenderFarmInstance> currentInstances = im.getCurrentInstances();
 		RenderFarmInstance previous_instance=null;
 		synchronized(currentInstances) {
-			if(currentInstances.isEmpty() || currentInstances.get(0).getLoadLevel()+req.getWeight()>MAXIMUM_LOAD){
+			Collections.sort(currentInstances);	//Sort the list by load level in ASCENDING order
+			if(currentInstances.isEmpty() || currentInstances.get(0).getLoadLevel()+req.getWeight() > MAXIMUM_LOAD){
 				//CRIO INSTANCIA
 				//return da nova
 				return null;

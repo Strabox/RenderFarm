@@ -1,6 +1,6 @@
 package renderfarm.loadbalancer.exceptions;
 
-public class MaximumRedirectRetriesReached extends Exception {
+public class MaximumRedirectRetriesReachedException extends Exception {
 
 	/**
 	 * 

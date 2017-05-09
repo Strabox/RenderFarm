@@ -58,7 +58,7 @@ public class RenderHandler implements HttpHandler {
 			try {
 				Metric metric = MultiThreadedWebServerMain.metricsGatherer.get(threadID);
 				metric.setFileName(paramMap.get("f"));
-				metric.setTotalPixelsRendered(windowWidth * windowHeight);
+				metric.setTotalPixelsRendered(sceneHeight * sceneWidth);
 				metric.setNormalizedWindow(NormalizedWindow
 						.BuildNormalizedWindow(sceneWidth, sceneHeight, windowWidth, windowHeight, collumnOffset, rowOffset));
 				

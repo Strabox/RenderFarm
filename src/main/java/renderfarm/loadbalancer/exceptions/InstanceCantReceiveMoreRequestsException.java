@@ -1,6 +1,6 @@
 package renderfarm.loadbalancer.exceptions;
 
-public class InstanceCantReceiveMoreRequests extends Exception {
+public class InstanceCantReceiveMoreRequestsException extends Exception {
 
 	/**
 	 * 

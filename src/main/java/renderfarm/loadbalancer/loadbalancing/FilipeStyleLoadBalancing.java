@@ -10,7 +10,7 @@ import dynamo.AmazonDynamoDB;
 import renderfarm.loadbalancer.RenderFarmInstance;
 import renderfarm.loadbalancer.RenderFarmInstanceManager;
 import renderfarm.loadbalancer.Request;
-import renderfarm.loadbalancer.exceptions.NoInstancesToHandleRequest;
+import renderfarm.loadbalancer.exceptions.NoInstancesToHandleRequestException;
 
 /**
  * Class that represents the unique legendary style of Filipe for load balancing.
@@ -25,7 +25,7 @@ public class FilipeStyleLoadBalancing extends LoadBalancing {
 	}
 	
 	@Override
-	public RenderFarmInstance getFitestMachineAlgorithm(RenderFarmInstanceManager im, Request req) throws NoInstancesToHandleRequest {
+	public RenderFarmInstance getFitestMachineAlgorithm(RenderFarmInstanceManager im, Request req) throws NoInstancesToHandleRequestException {
 		List<RenderFarmInstance> currentInstances = im.getCurrentInstances();
 		synchronized(currentInstances) {
 			for(RenderFarmInstance instance : currentInstances){
@@ -40,7 +40,7 @@ public class FilipeStyleLoadBalancing extends LoadBalancing {
 	       	 		return instance;
 	       	 	} 
 			}
-			throw new NoInstancesToHandleRequest();
+			throw new NoInstancesToHandleRequestException();
 		}
 	}
 

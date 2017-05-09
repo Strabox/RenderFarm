@@ -10,10 +10,10 @@ import renderfarm.loadbalancer.KeepAliveThread;
 import renderfarm.loadbalancer.RenderFarmInstance;
 import renderfarm.loadbalancer.RenderFarmInstanceManager;
 import renderfarm.loadbalancer.Request;
-import renderfarm.loadbalancer.exceptions.InvalidRenderingRequest;
-import renderfarm.loadbalancer.exceptions.MaximumRedirectRetriesReached;
-import renderfarm.loadbalancer.exceptions.NoInstancesToHandleRequest;
-import renderfarm.loadbalancer.exceptions.RedirectFailed;
+import renderfarm.loadbalancer.exceptions.InvalidRenderingRequestException;
+import renderfarm.loadbalancer.exceptions.MaximumRedirectRetriesReachedException;
+import renderfarm.loadbalancer.exceptions.NoInstancesToHandleRequestException;
+import renderfarm.loadbalancer.exceptions.RedirectFailedException;
 import renderfarm.util.NormalizedWindow;
 import renderfarm.util.RenderFarmUtil;
 import renderfarm.util.SystemConfiguration;
@@ -44,7 +44,7 @@ public class RequestHandler implements HttpHandler {
 	/**
 	 * Maximum time for a rendering request.
 	 */
-	private static final int MAXIMUM_TIME_FOR_RENDERING = 1000 * ( 3 * (60 * 60));
+	private static final int MAXIMUM_TIME_FOR_RENDERING =  (3 * (60 * 60) * 1000);
 	
 	/**
 	 * Time interval between each retry in a request 
@@ -78,7 +78,7 @@ public class RequestHandler implements HttpHandler {
 			if(!paramMap.containsKey("f") || !paramMap.containsKey("sc") || !paramMap.containsKey("sr") 
 	        		|| !paramMap.containsKey("wc") || !paramMap.containsKey("wr")
 	        		|| !paramMap.containsKey("coff") || !paramMap.containsKey("roff")) {
-			   throw new InvalidRenderingRequest();
+			   throw new InvalidRenderingRequestException();
 			}
 
 			Long sceneHeight = Long.parseLong(paramMap.get("sr"));
@@ -90,15 +90,15 @@ public class RequestHandler implements HttpHandler {
 			
 			request = new Request(paramMap.get("f") ,
 					NormalizedWindow.BuildNormalizedWindow(sceneWidth, sceneHeight, windowWidth, windowHeight, collumnOffset, rowOffset)
-					,windowWidth * windowHeight);
+					,sceneHeight * sceneWidth);
 			
 			for(int i = 0; i < MAXIMUM_NUMBER_OF_RETRIES; i++) {
 				try {
 					redirectRequestToRenderFarmInstance(http, requestParams, request);
 					break;
-				} catch(RedirectFailed e) {
+				} catch(RedirectFailedException e) {
 					if((i + 1) == MAXIMUM_NUMBER_OF_RETRIES) {
-						throw new MaximumRedirectRetriesReached();
+						throw new MaximumRedirectRetriesReachedException();
 					}
 				}
 				try {
@@ -109,7 +109,7 @@ public class RequestHandler implements HttpHandler {
 			}
 			
 			System.out.println("[Handler]Rendering request processed with success");
-		} catch(InvalidRenderingRequest e) {
+		} catch(InvalidRenderingRequestException e) {
 			System.out.println("[Handler]Request with wrong format");
 			String response = "Bad request: " + http.getRequestURI().getQuery();
 			try{ 
@@ -118,7 +118,7 @@ public class RequestHandler implements HttpHandler {
 			} catch(IOException e1) {
 				e.printStackTrace();
 			}
-		} catch(MaximumRedirectRetriesReached e) {
+		} catch(MaximumRedirectRetriesReachedException e) {
 			System.out.println("[Handler]Maximum retries reached");
 			String response = "Retry later maximum tries reached: " + http.getRequestURI().getQuery();
 			try{ 
@@ -151,12 +151,12 @@ public class RequestHandler implements HttpHandler {
 	 * @param http
 	 * @param requestParams
 	 * @param request
-	 * @throws RedirectFailed 
-	 * @throws MaximumRedirectRetriesReached
-	 * @throws InvalidRenderingRequest 
+	 * @throws RedirectFailedException 
+	 * @throws MaximumRedirectRetriesReachedException
+	 * @throws InvalidRenderingRequestException 
 	 */
 	private void redirectRequestToRenderFarmInstance(HttpExchange http, String requestParams, Request request) 
-			throws RedirectFailed {
+			throws RedirectFailedException {
 		final OutputStream out = http.getResponseBody();
 		int bytesRead;
 		boolean retry = false;
@@ -190,7 +190,7 @@ public class RequestHandler implements HttpHandler {
 			e.printStackTrace();
 			System.out.println("[Handler]Instance \"probably\" died, going to redirect to other instance");
 			retry = true;
-		} catch(NoInstancesToHandleRequest e) {
+		} catch(NoInstancesToHandleRequestException e) {
 			retry = true;
 			// WEIRD CASE
 			// TODO what we do if there are no instances to handle the request ?
@@ -216,7 +216,7 @@ public class RequestHandler implements HttpHandler {
 				instanceManager.removeRequestFromInstance(selectedInstance.getId(), request);
 			}
 			if(retry) {
-				throw new RedirectFailed();
+				throw new RedirectFailedException();
 			}
 		}
 	}
