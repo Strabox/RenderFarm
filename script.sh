@@ -79,9 +79,9 @@ then
 	fi
 	if [ $task = 2 ] || [ $task = 3 ]
 	then
-        	java renderfarm.instance.MultiThreadedWebServerMain AKIAIT7WECQ6JELHJ3DQ qY38jk4Z23SA+UbQMvfjb/wdCedzzUhjlosJKSs3
+        	java renderfarm.instance.MultiThreadedWebServerMain AKIAIHG2QFKEH263YYYQ +bgBVpau0dQOMzXuYiXyKG2bpbtzeXYlLxy6Eogf
     	else
-        	java renderfarm.loadbalancer.LoadBalancerMain AKIAIT7WECQ6JELHJ3DQ qY38jk4Z23SA+UbQMvfjb/wdCedzzUhjlosJKSs3
+        	java renderfarm.loadbalancer.LoadBalancerMain AKIAIHG2QFKEH263YYYQ +bgBVpau0dQOMzXuYiXyKG2bpbtzeXYlLxy6Eogf
     	fi
 else
 	echo "[SCRIPT]WRONG SCRIPT ARGUMENT"

@@ -36,7 +36,7 @@ public class RenderFarmInstanceManager {
 	private static final String SECURITY_GROUP = "CNV-ssh+http";
 	private static final String RENDER_IMAGE_ID = "ami-276df747";
 	private static final String RENDER_INSTANCE_TYPE = "t2.micro";
-	private static final String RENDER_KEY_PAIR_NAME = "CNV-lab-AWS";
+	private static final String RENDER_KEY_PAIR_NAME = "PROJECT_FINAL_KEY";
 	
 	//AmazonEC2 API Object
 	private AmazonEC2 ec2;	//Thread Safe

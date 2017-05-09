@@ -1,5 +1,7 @@
 package renderfarm.loadbalancer.loadbalancing;
 
+import java.util.List;
+
 import dynamo.AmazonDynamoDB;
 import renderfarm.loadbalancer.RenderFarmInstance;
 import renderfarm.loadbalancer.RenderFarmInstanceManager;
@@ -12,7 +14,7 @@ import renderfarm.loadbalancer.Request;
  */
 public final class BestLoadBalancing extends LoadBalancing {
 
-	private static final int MAXIMUM_LOAD=8;
+	private static final int MAXIMUM_LOAD = 8;
 
 	public BestLoadBalancing(AmazonDynamoDB dynamoDB) {
 		super(dynamoDB);
@@ -23,7 +25,7 @@ public final class BestLoadBalancing extends LoadBalancing {
 		List<RenderFarmInstance> currentInstances = im.getCurrentInstances();
 		RenderFarmInstance previous_instance=null;
 		synchronized(currentInstances) {
-			if(currentInstances.empty() || currentInstances.get(0).getLoadLevel()+req.getWeight()>MAXIMUM_LOAD){
+			if(currentInstances.isEmpty() || currentInstances.get(0).getLoadLevel()+req.getWeight()>MAXIMUM_LOAD){
 				//CRIO INSTANCIA
 				//return da nova
 				return null;
@@ -35,33 +37,8 @@ public final class BestLoadBalancing extends LoadBalancing {
 					}
 					previous_instance=instance;	
 				}
-				return instance;
+				return null;	//TODO
 			}		
-		}
-
-
-
-
-
-
-
-
-
-
-		synchronized(currentInstances) {
-			for(RenderFarmInstance instance : currentInstances){
-				DescribeInstancesRequest describeInstancesRequest = new DescribeInstancesRequest();
-	       	 	describeInstancesRequest.withInstanceIds(instance.getId());
-	       	 	DescribeInstancesResult res = im.getAmazonEC2().describeInstances(describeInstancesRequest);
-	       	 	InstanceState state = res.getReservations().get(0).getInstances().get(0).getState();
-	       	 	if(state.getCode() == RenderFarmInstance.RUNNING){
-	       	 		if(instance.getIp() == null){
-	       	 			instance.setIp(res.getReservations().get(0).getInstances().get(0).getPublicIpAddress());
-	       	 		}
-	       	 		return instance;
-	       	 	} 
-			}
-			throw new NoInstancesToHandleRequest();
 		}
 	}
 
