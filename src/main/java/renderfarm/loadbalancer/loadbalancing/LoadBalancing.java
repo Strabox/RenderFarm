@@ -37,7 +37,7 @@ public abstract class LoadBalancing {
 	 * @param req Actual request
 	 * @return Render farm instance selected to handle the request
 	 */
-	protected abstract RenderFarmInstance getFitestMachine(RenderFarmInstanceManager im,Request req) throws NoInstancesToHandleRequest;
+	protected abstract RenderFarmInstance getFitestMachineAlgorithm(RenderFarmInstanceManager im,Request req) throws NoInstancesToHandleRequest;
 	
 	/**
 	 * Method to get the machine IP to handle the request
@@ -47,31 +47,17 @@ public abstract class LoadBalancing {
 	 * @throws NoInstancesToHandleRequest 
 	 * @throws RedirectFailed 
 	 */
-	public String getFitestMachineIp(RenderFarmInstanceManager im,Request req) 
+	public RenderFarmInstance getFitestMachine(RenderFarmInstanceManager im,Request req) 
 			throws NoInstancesToHandleRequest, RedirectFailed {
 		RenderFarmInstance chosenInstance;
 		estimateRequestComputationalCost(req);
-		chosenInstance = getFitestMachine(im, req);
+		chosenInstance = getFitestMachineAlgorithm(im, req);
 		try {
 			chosenInstance.addRequest(req);
 		} catch (InstanceCantReceiveMoreRequests e) {
 			throw new RedirectFailed();
 		}
-		return chosenInstance.getIp();
-	}
-	
-	private List<Metric> getOverlappingMetricsRequest() {
-		List<Metric> metrics = new ArrayList<Metric>();
-		Metric metric2 = new Metric(null, new NormalizedWindow(0.3f,0.25f,0.25f,0.25f), 100, 
-				new Measures(100,50,25), 0);
-		Metric metric1 = new Metric(null, new NormalizedWindow(0.25f,0.25f,0.25f,0.25f), 100, 
-				new Measures(100,50,25), 0);
-		Metric metric3 = new Metric(null, new NormalizedWindow(0.3f,0.3f,0.25f,0.25f), 100, 
-				new Measures(100,50,25), 0);
-		metrics.add(metric2);
-		metrics.add(metric1);
-		metrics.add(metric3);
-		return metrics;
+		return chosenInstance;
 	}
 	
 	/**
@@ -90,7 +76,11 @@ public abstract class LoadBalancing {
 		double lc = Math.log10(loadCountReference / (double) loadCounts);
 		double sc = Math.log10(storeCountReference / (double) storeCountReference);
 		double complexityLog = bb + lc + sc;
+		System.out.println("[GetCostLevel]ComplexityLog:" + complexityLog);
 		int res = (int) Math.round(10 - ((complexityLog / constant) * 10));
+		if(res < 0) {		//Prevent weight that will turn our instance lighter :)
+			res = 0;
+		}
 		System.out.println("[GetCostLevel]Complexity level: " + res);
 		return res;
 	}
@@ -101,20 +91,14 @@ public abstract class LoadBalancing {
 	 * @param req Request to be processed
 	 */
 	private void estimateRequestComputationalCost(Request req) {
-		/*
-		 * Getting the metrics from dynamoDB:
-		 * List<Metric> metricsStored = dynamoDB.getIntersectiveItems(req.getFile(), req.getNormalizedWindow().getX(),
+		 List<Metric> metricsStored = dynamoDB.getIntersectiveItems(req.getFile(), req.getNormalizedWindow().getX(),
 				req.getNormalizedWindow().getY(), req.getNormalizedWindow().getWidth(),
-				req.getNormalizedWindow().getHeight()); */
-		List<Metric> metricsStored = getOverlappingMetricsRequest();
+				req.getNormalizedWindow().getHeight());
 		Metric fitestMetric = null;
 		float fitestMetricScaleMultiplicationFactor = 0,fitestMetricPercentageAreaOverlappingMetric = 0,
 				fitestMetricPercentageAreaOverlappingRequest = 0;
 		long metricBasicBlock = 0, metricStoreCount = 0, metricLoadCount = 0;
-		if(metricsStored.isEmpty()) {		//No metrics that have overlapping windows with ours
-			req.setWeight(4);
-			return;
-		}
+		System.out.println("[EstimateRequestCost]Searching in " + metricsStored.size() + " metrics");
 		for(Metric metric : metricsStored) {
 			float requestScaleMultiplicationFactor = req.getTotalPixelsRendered() / (float) metric.getTotalPixelsRendered();
 			float normalizedAreaOverlapping = req.getNormalizedWindow().normalizedAreaOverlapping(metric.getNormalizedWindow());
@@ -126,12 +110,16 @@ public abstract class LoadBalancing {
 				fitestMetricPercentageAreaOverlappingMetric = percentageAreaOverlappingMetric;
 				fitestMetricPercentageAreaOverlappingRequest = percentageAreaOverlappingRequest;
 				fitestMetricScaleMultiplicationFactor = requestScaleMultiplicationFactor;
-				System.out.println(fitestMetricPercentageAreaOverlappingMetric);
-				System.out.println(fitestMetricPercentageAreaOverlappingRequest);
-				System.out.println(fitestMetricScaleMultiplicationFactor);
 			}
 		}
-		
+		if(metricsStored.isEmpty() || fitestMetric == null) {		//No metrics that have overlapping windows with ours
+			req.setWeight(4);
+			System.out.println("[EstimateRequestCost]Result: 4 (Default no entries)");
+			return;
+		}
+		System.out.println("[EstimateRequestCost]%Area of metric:"+fitestMetricPercentageAreaOverlappingMetric);
+		System.out.println("[EstimateRequestCost]%Area of request:"+fitestMetricPercentageAreaOverlappingRequest);
+		System.out.println("[EstimateRequestCost]Scale Factor:"+fitestMetricScaleMultiplicationFactor);
 		//Obtain the measures from the selected metric and multiply it by the scale
 		metricBasicBlock = (long) (fitestMetric.getMeasures().getBasicBlockCount() * fitestMetricScaleMultiplicationFactor);
 		metricStoreCount = (long) (fitestMetric.getMeasures().getStorecount() * fitestMetricScaleMultiplicationFactor);
@@ -140,7 +128,7 @@ public abstract class LoadBalancing {
 		final int defaultCost = 4;
 		float finalWeight = (getCostLevel(metricBasicBlock,metricLoadCount,metricStoreCount) * fitestMetricPercentageAreaOverlappingMetric)
 				+ (defaultCost * (1 - fitestMetricPercentageAreaOverlappingRequest));
-		System.out.println("[EstimateRequestCost]" + Math.round(finalWeight));
+		System.out.println("[EstimateRequestCost]Result: " + Math.round(finalWeight));
 		req.setWeight(Math.round(finalWeight));
 	}
 	

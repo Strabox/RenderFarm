@@ -24,18 +24,19 @@ public class LoadBalancerMain {
 	private static final int LOAD_BALANCER_PORT = 8000;
 	
 	private static RenderFarmInstanceManager instanceManager;
-
-	private static AmazonDynamoDB dynamoDB;
 	
 	public static void main(String[] args) throws InterruptedException, IOException {
 		System.out.println("Starting Load Balancer...");
-		LoadBalancing loadBalacing = new FilipeStyleLoadBalancing(dynamoDB);
+		AmazonDynamoDB dynamoDB;
+		LoadBalancing loadBalacing;
 		if(args.length >= 2) {
-			instanceManager = new RenderFarmInstanceManager(loadBalacing,true,args[0],args[1]);
 			dynamoDB = new AmazonDynamoDB(args[0],args[1]);
+			loadBalacing = new FilipeStyleLoadBalancing(dynamoDB);
+			instanceManager = new RenderFarmInstanceManager(loadBalacing,true,args[0],args[1]);
 		} else {
-			instanceManager = new RenderFarmInstanceManager(loadBalacing,false,null,null);
 			dynamoDB = new AmazonDynamoDB(null,null);
+			loadBalacing = new FilipeStyleLoadBalancing(dynamoDB);
+			instanceManager = new RenderFarmInstanceManager(loadBalacing,false,null,null);
 		}
 		initAutoScaler();
 		initLoadBalancer();

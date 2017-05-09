@@ -17,7 +17,7 @@ public final class BestLoadBalancing extends LoadBalancing {
 	}
 	
 	@Override
-	public RenderFarmInstance getFitestMachine(RenderFarmInstanceManager im, Request req) {
+	public RenderFarmInstance getFitestMachineAlgorithm(RenderFarmInstanceManager im, Request req) {
 		// TODO Our final balancing algorithm runs here
 		throw new RuntimeException("Algorithm not implemented");
 	}

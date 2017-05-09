@@ -34,7 +34,7 @@ public class RenderFarmInstanceManager {
 
 	private static final Regions AVAILABILITY_ZONE = Regions.US_WEST_2;
 	private static final String SECURITY_GROUP = "CNV-ssh+http";
-	private static final String RENDER_IMAGE_ID = "ami-db73ecbb";
+	private static final String RENDER_IMAGE_ID = "ami-276df747";
 	private static final String RENDER_INSTANCE_TYPE = "t2.micro";
 	private static final String RENDER_KEY_PAIR_NAME = "CNV-lab-AWS";
 	
@@ -134,10 +134,10 @@ public class RenderFarmInstanceManager {
 	 * @param instanceIP Instance IP
 	 * @param request Request to be deleted
 	 */
-	public void removeRequestFromInstance(String instanceIP,Request request) {
+	public void removeRequestFromInstance(String instanceID,Request request) {
 		synchronized(currentInstances) {
 			for(RenderFarmInstance instance : currentInstances) {
-				if(instance.getIp().equals(instanceIP)) {
+				if(instance.getId().equals(instanceID)) {
 					instance.removeRequest(request);
 					return;
 				}
@@ -164,8 +164,8 @@ public class RenderFarmInstanceManager {
 	 * @throws NoInstancesToHandleRequest 
 	 * @throws RedirectFailed 
 	 */
-	public String getHandlerInstanceIP(Request request) throws NoInstancesToHandleRequest, RedirectFailed{
-		return loadBalancing.getFitestMachineIp(this, request);
+	public RenderFarmInstance getHandlerInstanceIP(Request request) throws NoInstancesToHandleRequest, RedirectFailed{
+		return loadBalancing.getFitestMachine(this, request);
 	}
 	
 	@Override

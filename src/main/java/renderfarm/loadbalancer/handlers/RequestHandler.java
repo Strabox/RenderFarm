@@ -7,6 +7,7 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
 import renderfarm.loadbalancer.KeepAliveThread;
+import renderfarm.loadbalancer.RenderFarmInstance;
 import renderfarm.loadbalancer.RenderFarmInstanceManager;
 import renderfarm.loadbalancer.Request;
 import renderfarm.loadbalancer.exceptions.InvalidRenderingRequest;
@@ -73,7 +74,6 @@ public class RequestHandler implements HttpHandler {
 		final Map<String,String> paramMap = RenderFarmUtil.getQueryMap(requestParams);
 		final Request request;
 		final OutputStream out = http.getResponseBody();
-		System.out.println(instanceManager);
 		try{
 			if(!paramMap.containsKey("f") || !paramMap.containsKey("sc") || !paramMap.containsKey("sr") 
 	        		|| !paramMap.containsKey("wc") || !paramMap.containsKey("wr")
@@ -97,7 +97,7 @@ public class RequestHandler implements HttpHandler {
 					redirectRequestToRenderFarmInstance(http, requestParams, request);
 					break;
 				} catch(RedirectFailed e) {
-					if(i == MAXIMUM_NUMBER_OF_RETRIES) {
+					if((i + 1) == MAXIMUM_NUMBER_OF_RETRIES) {
 						throw new MaximumRedirectRetriesReached();
 					}
 				}
@@ -162,17 +162,17 @@ public class RequestHandler implements HttpHandler {
 		boolean retry = false;
 		InputStream in = null;
 		KeepAliveThread keepAliveThread = null;
-		String handlerInstanceIP = null;
+		RenderFarmInstance selectedInstance = null;
 		try {
 			System.out.println("[Handler]Looking for best instance..");
-			handlerInstanceIP = instanceManager.getHandlerInstanceIP(request);
-			URL url = new URL("http",handlerInstanceIP,SystemConfiguration.RENDER_INSTANCE_PORT,"/r.html?" + requestParams);
+			selectedInstance = instanceManager.getHandlerInstanceIP(request);
+			URL url = new URL("http",selectedInstance.getIp(),SystemConfiguration.RENDER_INSTANCE_PORT,"/r.html?" + requestParams);
 			System.out.println("[Handler]Redirecting number of request to instance URL: " + url.toString());
 			HttpURLConnection connection = (HttpURLConnection) url.openConnection();
 			connection.setConnectTimeout(CONNECTION_TIMEOUT);
 			connection.setReadTimeout(MAXIMUM_TIME_FOR_RENDERING);
 			connection.connect();
-			keepAliveThread = new KeepAliveThread(connection, handlerInstanceIP);
+			keepAliveThread = new KeepAliveThread(connection, selectedInstance.getIp());
 			keepAliveThread.start();
 			System.out.println("[Handler]Getting response code...");
 			connection.getResponseCode();
@@ -211,9 +211,9 @@ public class RequestHandler implements HttpHandler {
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-			if(request != null && handlerInstanceIP != null) {
+			if(request != null && selectedInstance != null) {
 				//Remove the request from the instance structure.
-				instanceManager.removeRequestFromInstance(handlerInstanceIP, request);
+				instanceManager.removeRequestFromInstance(selectedInstance.getId(), request);
 			}
 			if(retry) {
 				throw new RedirectFailed();
