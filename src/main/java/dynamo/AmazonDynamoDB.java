@@ -143,7 +143,7 @@ public class AmazonDynamoDB{
             Condition condition3 = new Condition()
                 .withComparisonOperator(ComparisonOperator.LE.toString())
                 .withAttributeValueList(new AttributeValue().withN(Float.toString(window_y)));
-            scanFilter.put(WINDOW_Y_PLUS_WINDOW_HEIGHT, condition);
+            scanFilter.put(WINDOW_Y_PLUS_WINDOW_HEIGHT, condition3);
             Condition condition4 = new Condition()
                 .withComparisonOperator(ComparisonOperator.LE.toString())
                 .withAttributeValueList(new AttributeValue().withN(Float.toString(window_x)));
