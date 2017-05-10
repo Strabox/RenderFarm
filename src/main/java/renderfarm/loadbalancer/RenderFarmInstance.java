@@ -23,7 +23,7 @@ public class RenderFarmInstance implements Comparable<RenderFarmInstance>{
 	/**
 	 * Instance IP
 	 */
-	private String ip;
+	private volatile String ip;
 	
 	/**
 	 * Instance ID
@@ -44,7 +44,7 @@ public class RenderFarmInstance implements Comparable<RenderFarmInstance>{
 	/**
 	 * The estimate for our instance load [0,10[
 	 */
-	private int loadLevel;
+	private volatile int loadLevel;
 	
 	public RenderFarmInstance(String id) {
 		this.ip = null;
@@ -79,6 +79,10 @@ public class RenderFarmInstance implements Comparable<RenderFarmInstance>{
 		return stopReceiveRequests.get();
 	}
 	
+	public synchronized boolean isEmpty() {
+		return requestsInExecution.isEmpty();
+	}
+	
 	public synchronized int getLoadLevel() {
 		return loadLevel;
 	}
@@ -96,7 +100,7 @@ public class RenderFarmInstance implements Comparable<RenderFarmInstance>{
 	}
 	
 	@Override
-	public boolean equals(Object obj) {
+	public synchronized boolean equals(Object obj) {
 		if(this == obj) {
 			return true;
 		}

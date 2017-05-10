@@ -1,26 +1,17 @@
 package renderfarm.loadbalancer;
 
 import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import renderfarm.util.SystemConfiguration;
+import renderfarm.loadbalancer.exceptions.InstanceIsDownException;
+import renderfarm.util.RenderFarmInstanceHealthCheck;
 
 public class KeepAliveThread extends Thread {
-	/**
-	 * Timeout to establish the connection with the instance.
-	 */
-	private final static int CONNECTION_TIMEOUT = 10000;
-	
-	/**
-	 * Timeout waiting for the render farm Health Check reply.
-	 */
-	private final static int WAIT_FOR_REPLY_TIMEOUT = 5000;
-	
+
 	/**
 	 * Time interval of pooling the Health Check.
 	 */
-	private final static int INTERVAL_OF_POOLING = 10000;
+	private final static int INTERVAL_OF_POLLING = 10000;
 	
 	/**
 	 * Handler thread connection.
@@ -30,53 +21,44 @@ public class KeepAliveThread extends Thread {
 	/**
 	 * Instance IP pooling
 	 */
-	private final String instanceIP;
+	private final RenderFarmInstanceHealthCheck instanceHealthCheck;
 	
-	private final AtomicBoolean keepPooling;
+	/**
+	 * Used to decide if stop the polling
+	 */
+	private final AtomicBoolean keepPolling;
 	
 	public KeepAliveThread(HttpURLConnection conn,String instanceIP) {
 		this.handlerConnection = conn;
-		this.instanceIP  = instanceIP;
-		this.keepPooling = new AtomicBoolean(true);
+		this.keepPolling = new AtomicBoolean(true);
+		instanceHealthCheck = new RenderFarmInstanceHealthCheck(instanceIP);
 	}
 	
 	/**
 	 * Used to other threads stop this thread.
 	 */
 	public void terminate() {
-		keepPooling.set(false);
+		keepPolling.set(false);
 	}
 	
 	@Override
 	public void run() {
-		HttpURLConnection connection = null;
 		try {
 			while(true) {
-				URL url = new URL("http",instanceIP,SystemConfiguration.RENDER_INSTANCE_PORT,"/HealthCheck");
-				connection = (HttpURLConnection) url.openConnection();
-				connection.setConnectTimeout(CONNECTION_TIMEOUT);
-				connection.setReadTimeout(WAIT_FOR_REPLY_TIMEOUT);
 				System.out.println("[KEEPALIVE] U there?");
-				if(connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
-					throw new Exception("Wrong response from instance.");
+				if(!instanceHealthCheck.isUp()) {
+					throw new InstanceIsDownException();
 				}
 				System.out.println("[KEEPALIVE] I'm here bro");
-				Thread.sleep(INTERVAL_OF_POOLING);
-				if(!keepPooling.get()) {
+				Thread.sleep(INTERVAL_OF_POLLING);
+				if(!keepPolling.get()) {
 					break;
 				}
-				if(connection != null) {
-					connection.disconnect();
-				}
+
 			}
 		} catch(Exception e) {
 			System.out.println("[KEEPALIVE] Instance died probably");
 			handlerConnection.disconnect();		//Kill the handler connection to blow it.
-		}
-		finally {
-			if(connection != null) {
-				connection.disconnect();
-			}
 		}
 	}
 	
