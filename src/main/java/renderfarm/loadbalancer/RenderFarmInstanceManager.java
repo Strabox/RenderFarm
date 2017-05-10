@@ -22,7 +22,10 @@ import renderfarm.loadbalancer.exceptions.RedirectFailedException;
 import renderfarm.loadbalancer.loadbalancing.LoadBalancing;
 
 import com.amazonaws.services.ec2.model.RunInstancesResult;
+import com.amazonaws.services.ec2.model.DescribeInstancesRequest;
+import com.amazonaws.services.ec2.model.DescribeInstancesResult;
 import com.amazonaws.services.ec2.model.Instance;
+import com.amazonaws.services.ec2.model.InstanceState;
 import com.amazonaws.services.ec2.model.InstanceStateChange;
 
 /**
@@ -42,10 +45,11 @@ public class RenderFarmInstanceManager {
 	private AmazonEC2 ec2;	//Thread Safe
 	
 	//All the instances that we think that are currently running
-	private List<RenderFarmInstance> currentInstances;	//Thread Safe
+	private List<RenderFarmInstance> currentInstances;	//Thread Safe (except when iterating)
 	
 	//Object that implements the load balancing logic
 	private LoadBalancing loadBalancing;				//Thread Safe
+	
 	
 	public RenderFarmInstanceManager(LoadBalancing loadBalacing,boolean directCredentials,
 			String accessId,String accessKey) {
@@ -61,10 +65,17 @@ public class RenderFarmInstanceManager {
         }
 		ec2 = AmazonEC2ClientBuilder.standard().withRegion(AVAILABILITY_ZONE)
         		.withCredentials(new AWSStaticCredentialsProvider(credentials)).build();
-		currentInstances = Collections.synchronizedList(new ArrayList());
+		currentInstances = Collections.synchronizedList(new ArrayList<RenderFarmInstance>());
 		loadBalancing = loadBalacing;
 	}
 	
+	/**
+	 * Obtain credentials to use in AWS web service requests.
+	 * @param directCredentials
+	 * @param accessId
+	 * @param accessKey
+	 * @return
+	 */
 	private AWSCredentials obtainCredentials(boolean directCredentials,String accessId,String accessKey) {
 		if(directCredentials) {
 			return new BasicAWSCredentials(accessId,accessKey);
@@ -115,10 +126,28 @@ public class RenderFarmInstanceManager {
 	}
 	
 	/**
+	 * Remove all the instances from currentInstances that are dead
+	 * (Not responding)
+	 */
+	public void removeDeadRenderFarmInstances() {
+		DescribeInstancesRequest describeInstancesRequest = new DescribeInstancesRequest();
+   	 	describeInstancesRequest.getMaxResults();
+   	 	DescribeInstancesResult res = ec2.describeInstances(describeInstancesRequest);
+   	 	List<Instance> instances = res.getReservations().get(0).getInstances();
+   	 	for(Instance instance : instances) {
+   	 		if(instance.getState().getCode() == RenderFarmInstance.SHUTTING_DOWN ||
+   	 			instance.getState().getCode() == RenderFarmInstance.STOPPED ||
+   	 			instance.getState().getCode() == RenderFarmInstance.TERMINATED ) {
+   	 			removeRenderFarmInstance(instance.getInstanceId());
+   	 		}
+   	 	}
+	}
+	
+	/**
 	 * Remove the instance from our internal structure given the ID
 	 * @param instanceId Instance Id
 	 */
-	public void removeRenderFarmInstance(String instanceId) {
+	private void removeRenderFarmInstance(String instanceId) {
 		synchronized (currentInstances) {
 			for(RenderFarmInstance instance : currentInstances) {
 				if(instance.getId().equals(instanceId)) {
@@ -146,15 +175,27 @@ public class RenderFarmInstanceManager {
 	}
 	
 	/**
+	 * Verify in AWS if the instance is running or not.
+	 * @param instanceId AWS instance id
+	 * @return
+	 */
+	public boolean isInstanceRunning(RenderFarmInstance instance) {
+		DescribeInstancesRequest describeInstancesRequest = new DescribeInstancesRequest();
+   	 	describeInstancesRequest.withInstanceIds(instance.getId());
+   	 	DescribeInstancesResult res = ec2.describeInstances(describeInstancesRequest);
+   	 	InstanceState state = res.getReservations().get(0).getInstances().get(0).getState();
+   	 	if(instance.getIp() == null) {
+   	 		instance.setIp(res.getReservations().get(0).getInstances().get(0).getPublicIpAddress());
+   	 	}
+   	 	return state.getCode() == RenderFarmInstance.RUNNING;
+	}
+	
+	/**
 	 * Get all current instances
 	 * @return
 	 */
 	public List<RenderFarmInstance> getCurrentInstances(){
 		return currentInstances;
-	}
-	
-	public AmazonEC2 getAmazonEC2() {
-		return ec2;
 	}
 	
 	/**

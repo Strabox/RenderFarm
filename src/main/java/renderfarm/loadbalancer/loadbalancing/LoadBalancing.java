@@ -2,7 +2,7 @@ package renderfarm.loadbalancer.loadbalancing;
 
 import java.util.List;
 
-import dynamo.AmazonDynamoDB;
+import renderfarm.dynamo.AmazonDynamoDB;
 import renderfarm.loadbalancer.RenderFarmInstance;
 import renderfarm.loadbalancer.RenderFarmInstanceManager;
 import renderfarm.loadbalancer.Request;
@@ -71,11 +71,10 @@ public abstract class LoadBalancing {
 		float fitestMetricScaleFactor = 0, fitestMetricOverlappingArea = 0;
 		long metricBasicBlockAdjustedScaleAndArea = 0, metricStoreCountAdjustedScaleAndArea = 0,
 				metricLoadCountAdjustedScaleAndArea = 0;
-		final int defaultWeight = 5;
 		//No metrics that have overlapping windows with ours
 		if(metricsStored.isEmpty()) {
-			System.out.println("[EstimateRequestCost]Result: " + defaultWeight + " [Default] no entries");
-			return defaultWeight;
+			System.out.println("[EstimateRequestCost]Result: " + getDefaultRequestWeight() + " [Default] no entries");
+			return getDefaultRequestWeight();
 		}
 		System.out.println("[EstimateRequestCost]Searching in " + metricsStored.size() + " metrics");
 		for(Metric metric : metricsStored) {
@@ -87,6 +86,10 @@ public abstract class LoadBalancing {
 				fitestMetricOverlappingArea = overlappingArea;
 				fitestMetricScaleFactor = requestScaleFactor;
 			}
+		}
+		if(fitestMetric == null) {
+			System.out.println("[EstimateRequestCost]Result: " + getDefaultRequestWeight() + " [Default] no entries");
+			return getDefaultRequestWeight();
 		}
 		float overlappingAreaDivideByMetricArea = fitestMetricOverlappingArea / (float) fitestMetric.getNormalizedWindow().getArea();
 		float overlappingAreaDividedByRequestArea = fitestMetricOverlappingArea / (float) req.getNormalizedWindow().getArea();
@@ -102,9 +105,15 @@ public abstract class LoadBalancing {
 		int costLevelOfOvelappingAreaInMetric = getCostLevel(metricBasicBlockAdjustedScaleAndArea,
 				metricLoadCountAdjustedScaleAndArea, metricStoreCountAdjustedScaleAndArea);
 		
+		System.out.println("[EstimateRequestCost]FitestMetricOvelappingArea: " + fitestMetricOverlappingArea);
+		System.out.println("[EstimateRequestCost]FitestMetricArea: " + fitestMetric.getNormalizedWindow().getArea());
+		System.out.println("[EstimateRequestCost]ScaleFactor: " + fitestMetricScaleFactor);
+		System.out.println("[EstimateRequestCost]%OfOverlapingInMetric: " + overlappingAreaDivideByMetricArea);
+		System.out.println("[EstimateRequestCost]%OfOverlapingInRequest: " + overlappingAreaDividedByRequestArea);
+		
 		float finalWeight = (overlappingAreaDividedByRequestArea * costLevelOfOvelappingAreaInMetric) + 
 				((req.getNormalizedWindow().getArea() - fitestMetricOverlappingArea) / (float) req.getNormalizedWindow().getArea()) * 
-				defaultWeight;
+				getDefaultRequestWeight();
 		int result = Math.round(finalWeight);
 		System.out.println("[EstimateRequestCost]Result: " + finalWeight);
 		return result;
@@ -138,5 +147,12 @@ public abstract class LoadBalancing {
 		return res;
 	}
 	
+	/**
+	 * Return the default weight for a slice of the request we have no idea about.
+	 * @return
+	 */
+	private int getDefaultRequestWeight() {
+		return 5;
+	}
 	
 }

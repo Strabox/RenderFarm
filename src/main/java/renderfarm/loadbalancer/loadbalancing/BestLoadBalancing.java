@@ -3,7 +3,7 @@ package renderfarm.loadbalancer.loadbalancing;
 import java.util.Collections;
 import java.util.List;
 
-import dynamo.AmazonDynamoDB;
+import renderfarm.dynamo.AmazonDynamoDB;
 import renderfarm.loadbalancer.RenderFarmInstance;
 import renderfarm.loadbalancer.RenderFarmInstanceManager;
 import renderfarm.loadbalancer.Request;

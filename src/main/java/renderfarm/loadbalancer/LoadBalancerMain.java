@@ -6,11 +6,11 @@ import java.util.concurrent.Executors;
 import com.sun.net.httpserver.HttpServer;
 
 import renderfarm.autoscaler.AutoScaler;
+import renderfarm.dynamo.AmazonDynamoDB;
 import renderfarm.loadbalancer.handlers.FarmStatusHandler;
 import renderfarm.loadbalancer.handlers.RequestHandler;
 import renderfarm.loadbalancer.loadbalancing.FilipeStyleLoadBalancing;
 import renderfarm.loadbalancer.loadbalancing.LoadBalancing;
-import dynamo.AmazonDynamoDB;
 /**
  * Main class to launch and hold our custom Load Balancer
  * @author Andre

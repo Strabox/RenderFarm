@@ -1,4 +1,4 @@
-package renderfarm.instance.handlers;
+package renderfarm.renderinstance.handlers;
 
 import java.io.IOException;
 import java.io.OutputStream;

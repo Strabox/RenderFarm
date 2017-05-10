@@ -1,4 +1,4 @@
-package dynamo;
+package renderfarm.dynamo;
 
 import java.util.HashMap;
 import java.util.Map;

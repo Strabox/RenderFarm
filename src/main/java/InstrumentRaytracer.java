@@ -1,5 +1,5 @@
 import BIT.highBIT.*;
-import renderfarm.instance.MultiThreadedWebServerMain;
+import renderfarm.renderinstance.MultiThreadedWebServerMain;
 import renderfarm.util.Measures;
 import renderfarm.util.Metric;
 import java.io.*;

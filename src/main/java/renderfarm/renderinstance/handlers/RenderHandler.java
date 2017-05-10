@@ -1,4 +1,4 @@
-package renderfarm.instance.handlers;
+package renderfarm.renderinstance.handlers;
 
 import java.io.File;
 import java.io.IOException;
@@ -10,7 +10,7 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
 import raytracer.Main;
-import renderfarm.instance.MultiThreadedWebServerMain;
+import renderfarm.renderinstance.MultiThreadedWebServerMain;
 import renderfarm.util.Metric;
 import renderfarm.util.NormalizedWindow;
 import renderfarm.util.RenderFarmUtil;

@@ -1,4 +1,4 @@
-package renderfarm.instance;
+package renderfarm.renderinstance;
 
 
 import java.net.InetSocketAddress;
@@ -7,9 +7,9 @@ import java.util.concurrent.Executors;
 
 import com.sun.net.httpserver.HttpServer;
 
-import dynamo.AmazonDynamoDB;
-import renderfarm.instance.handlers.HealthCheckHandler;
-import renderfarm.instance.handlers.RenderHandler;
+import renderfarm.dynamo.AmazonDynamoDB;
+import renderfarm.renderinstance.handlers.HealthCheckHandler;
+import renderfarm.renderinstance.handlers.RenderHandler;
 import renderfarm.util.Metric;
 import renderfarm.util.SystemConfiguration;
 

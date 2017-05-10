@@ -2,11 +2,7 @@ package renderfarm.loadbalancer.loadbalancing;
 
 import java.util.List;
 
-import com.amazonaws.services.ec2.model.DescribeInstancesRequest;
-import com.amazonaws.services.ec2.model.DescribeInstancesResult;
-import com.amazonaws.services.ec2.model.InstanceState;
-
-import dynamo.AmazonDynamoDB;
+import renderfarm.dynamo.AmazonDynamoDB;
 import renderfarm.loadbalancer.RenderFarmInstance;
 import renderfarm.loadbalancer.RenderFarmInstanceManager;
 import renderfarm.loadbalancer.Request;
@@ -25,18 +21,12 @@ public class FilipeStyleLoadBalancing extends LoadBalancing {
 	}
 	
 	@Override
-	public RenderFarmInstance getFitestMachineAlgorithm(RenderFarmInstanceManager im, Request req) throws NoInstancesToHandleRequestException {
+	public RenderFarmInstance getFitestMachineAlgorithm(RenderFarmInstanceManager im, Request req)
+			throws NoInstancesToHandleRequestException {
 		List<RenderFarmInstance> currentInstances = im.getCurrentInstances();
 		synchronized(currentInstances) {
 			for(RenderFarmInstance instance : currentInstances){
-				DescribeInstancesRequest describeInstancesRequest = new DescribeInstancesRequest();
-	       	 	describeInstancesRequest.withInstanceIds(instance.getId());
-	       	 	DescribeInstancesResult res = im.getAmazonEC2().describeInstances(describeInstancesRequest);
-	       	 	InstanceState state = res.getReservations().get(0).getInstances().get(0).getState();
-	       	 	if(state.getCode() == RenderFarmInstance.RUNNING){
-	       	 		if(instance.getIp() == null){
-	       	 			instance.setIp(res.getReservations().get(0).getInstances().get(0).getPublicIpAddress());
-	       	 		}
+	       	 	if(im.isInstanceRunning(instance)){
 	       	 		return instance;
 	       	 	} 
 			}

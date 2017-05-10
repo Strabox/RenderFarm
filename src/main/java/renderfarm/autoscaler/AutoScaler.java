@@ -1,11 +1,6 @@
 package renderfarm.autoscaler;
 
-import java.util.List;
 import com.amazonaws.AmazonServiceException;
-import com.amazonaws.services.ec2.model.DescribeInstancesRequest;
-import com.amazonaws.services.ec2.model.DescribeInstancesResult;
-import com.amazonaws.services.ec2.model.Instance;
-import renderfarm.loadbalancer.RenderFarmInstance;
 import renderfarm.loadbalancer.RenderFarmInstanceManager;
 
 /**
@@ -26,8 +21,14 @@ public class AutoScaler extends Thread {
 	 */
 	private static final int AUTO_SCALING_TIME_INTERVAL = 20000;
 	
+	/**
+	 * Implements our autoscaler logic.
+	 */
 	private AutoScaling autoScaling;
 	
+	/**
+	 * Manager of render farm instances
+	 */
 	private RenderFarmInstanceManager instanceManager;
 	
 	public AutoScaler(RenderFarmInstanceManager instanceManager) {
@@ -50,23 +51,8 @@ public class AutoScaler extends Thread {
 		while(true) {
 			try {
 				System.out.println("[AUTOSCALER]Auto scaler algorithm started...");
-				/*
-				 * Remove the dead machines from our structures based on AWS response!!
-				 */
-				DescribeInstancesRequest describeInstancesRequest = new DescribeInstancesRequest();
-	       	 	describeInstancesRequest.getMaxResults();
-	       	 	DescribeInstancesResult res = instanceManager.getAmazonEC2().describeInstances(describeInstancesRequest);
-	       	 	List<Instance> instances = res.getReservations().get(0).getInstances();
-	       	 	for(Instance instance : instances) {
-	       	 		if(instance.getState().getCode() == RenderFarmInstance.SHUTTING_DOWN ||
-	       	 			instance.getState().getCode() == RenderFarmInstance.STOPPED ||
-	       	 			instance.getState().getCode() == RenderFarmInstance.TERMINATED ) {
-	       	 			instanceManager.removeRenderFarmInstance(instance.getInstanceId());
-	       	 		}
-	       	 	}
-	       	 	
+				instanceManager.removeDeadRenderFarmInstances();
 	       	 	autoScaling.autoScale();
-
 				System.out.println("[AUTOSCALER]Auto scaler algorithm ended.");
 				try {
 					Thread.sleep(AUTO_SCALING_TIME_INTERVAL);
