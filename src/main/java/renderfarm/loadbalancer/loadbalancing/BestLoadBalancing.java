@@ -23,24 +23,41 @@ public final class BestLoadBalancing extends LoadBalancing {
 	
 	@Override
 	public RenderFarmInstance getFitestMachineAlgorithm(RenderFarmInstanceManager im, Request req) {
-		List<RenderFarmInstance> currentInstances = im.getCurrentInstances();
-		RenderFarmInstance previous_instance=null;
-		synchronized(currentInstances) {
-			Collections.sort(currentInstances);	//Sort the list by load level in ASCENDING order
-			if(currentInstances.isEmpty() || currentInstances.get(0).getLoadLevel()+req.getWeight() > MAXIMUM_LOAD){
-				//CRIO INSTANCIA
-				//return da nova
-				return null;
-			}
-			else{
-				for(RenderFarmInstance instance : currentInstances){
-					if(instance.getLoadLevel()+req.getWeight()>MAXIMUM_LOAD){
-						return previous_instance;
-					}
-					previous_instance=instance;	
+		try{
+			
+			List<RenderFarmInstance> currentInstances = im.getCurrentInstances();
+			RenderFarmInstance previous_instance=null;
+			synchronized(currentInstances) {
+				Collections.sort(currentInstances);	//Sort the list by load level in ASCENDING order
+				if(currentInstances.isEmpty() || currentInstances.get(0).getLoadLevel()+req.getWeight() > MAXIMUM_LOAD){
+					return im.createReadyInstance();
 				}
-				return null;	//TODO
-			}		
+				else{
+					for(RenderFarmInstance instance : currentInstances){
+						if(instance.getLoadLevel()+req.getWeight()>MAXIMUM_LOAD){
+							while(!im.isInstanceRunning(previous_instance)){
+								Thread.sleep(3000);
+							}
+							while(!im.isInstanceWorking(previous_instance)){
+								Thread.sleep(3000);
+							}
+							return previous_instance;
+						}
+						previous_instance=instance;	
+					}
+					while(!im.isInstanceRunning(previous_instance)){
+						Thread.sleep(3000);
+					}
+					while(!im.isInstanceWorking(previous_instance)){
+						Thread.sleep(3000);
+					}
+					return previous_instance;	//TODO
+				}		
+			}
+		}
+		catch(Exception e){
+			System.out.println("[getFitestMachineAlgorithm] Problem finding Instance");
+			return null;
 		}
 	}
 

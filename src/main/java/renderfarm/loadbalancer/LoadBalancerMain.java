@@ -11,6 +11,7 @@ import renderfarm.loadbalancer.handlers.FarmStatusHandler;
 import renderfarm.loadbalancer.handlers.RequestHandler;
 import renderfarm.loadbalancer.loadbalancing.FilipeStyleLoadBalancing;
 import renderfarm.loadbalancer.loadbalancing.LoadBalancing;
+import renderfarm.loadbalancer.loadbalancing.BestLoadBalancing;
 /**
  * Main class to launch and hold our custom Load Balancer
  * @author Andre
@@ -31,11 +32,11 @@ public class LoadBalancerMain {
 		LoadBalancing loadBalacing;
 		if(args.length >= 2) {
 			dynamoDB = new AmazonDynamoDB(args[0],args[1]);
-			loadBalacing = new FilipeStyleLoadBalancing(dynamoDB);
+			loadBalacing = new BestLoadBalancing(dynamoDB);
 			instanceManager = new RenderFarmInstanceManager(loadBalacing,true,args[0],args[1]);
 		} else {
 			dynamoDB = new AmazonDynamoDB(null,null);
-			loadBalacing = new FilipeStyleLoadBalancing(dynamoDB);
+			loadBalacing = new BestLoadBalancing(dynamoDB);
 			instanceManager = new RenderFarmInstanceManager(loadBalacing,false,null,null);
 		}
 		initAutoScaler();

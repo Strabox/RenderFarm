@@ -28,6 +28,12 @@ import com.amazonaws.services.ec2.model.Instance;
 import com.amazonaws.services.ec2.model.InstanceState;
 import com.amazonaws.services.ec2.model.InstanceStateChange;
 
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import renderfarm.util.SystemConfiguration;
+
 /**
  * Class to manage the operations of our render farm instances
  * @author Andre
@@ -40,6 +46,22 @@ public class RenderFarmInstanceManager {
 	private static final String SECURITY_GROUP = "cnv-ssh+http";
 	private static final String RENDER_IMAGE_ID = "ami-f2325792";
 	private static final String RENDER_KEY_PAIR_NAME = "PROJECT_FINAL_KEY";
+	/**
+	 * Timeout to establish the connection with the instance.
+	 */
+	private final static int CONNECTION_TIMEOUT = 10000;
+	
+	/**
+	 * Timeout waiting for the render farm Health Check reply.
+	 */
+	private final static int WAIT_FOR_REPLY_TIMEOUT = 5000;
+	
+	/**
+	 * Time interval of pooling the Health Check.
+	 */
+	private final static int INTERVAL_OF_POOLING = 10000;
+	
+
 	
 	//AmazonEC2 API Object
 	private AmazonEC2 ec2;	//Thread Safe
@@ -103,6 +125,21 @@ public class RenderFarmInstanceManager {
         	RenderFarmInstance instance = new RenderFarmInstance(i.getInstanceId());
         	currentInstances.add(instance);
         }
+	}
+
+	public RenderFarmInstance launchInstance() throws AmazonServiceException {
+		RunInstancesRequest runInstancesRequest = new RunInstancesRequest();
+        runInstancesRequest.withImageId(RENDER_IMAGE_ID)
+                           .withInstanceType(RENDER_INSTANCE_TYPE)
+                           .withMinCount(1)
+                           .withMaxCount(1)
+                           .withKeyName(RENDER_KEY_PAIR_NAME)
+                           .withSecurityGroups(SECURITY_GROUP);
+        RunInstancesResult runInstancesResult = ec2.runInstances(runInstancesRequest);
+        List<Instance> instances = runInstancesResult.getReservation().getInstances();
+        RenderFarmInstance instance = new RenderFarmInstance(instances.get(0).getInstanceId());
+        currentInstances.add(instance);
+        return instance;
 	}
 	
 	/**
@@ -207,6 +244,45 @@ public class RenderFarmInstanceManager {
 	 */
 	public RenderFarmInstance getHandlerInstanceIP(Request request) throws NoInstancesToHandleRequestException, RedirectFailedException{
 		return loadBalancing.getFitestMachine(this, request);
+	}
+
+	public boolean isInstanceWorking(RenderFarmInstance instance){
+		HttpURLConnection connection = null;
+		try{	
+			URL url = new URL("http",instance.getIp(),SystemConfiguration.RENDER_INSTANCE_PORT,"/HealthCheck");
+			connection = (HttpURLConnection) url.openConnection();
+			connection.setConnectTimeout(CONNECTION_TIMEOUT);
+			connection.setReadTimeout(WAIT_FOR_REPLY_TIMEOUT);
+			if(connection.getResponseCode() == HttpURLConnection.HTTP_OK) {
+				connection.disconnect();
+				return true;
+			}
+			return false;
+		}
+		catch(Exception e) {
+			System.out.println("[isInstanceRunning] Something is not right with the instance");
+		}
+		return false;
+
+	}
+	
+	public RenderFarmInstance createReadyInstance(){
+		//TODO Tornar o metodo indestrutivel
+		try{
+			RenderFarmInstance instance =launchInstance();
+			while(!isInstanceRunning(instance)){
+				Thread.sleep(1000);
+			}
+			while(!isInstanceWorking(instance)){
+				Thread.sleep(1000);
+			}
+			return instance;
+		}
+		catch(Exception e){
+			System.out.println("[createReadyInstance] Threads problems");
+		}
+		return null;
+
 	}
 	
 	@Override
