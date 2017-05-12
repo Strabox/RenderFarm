@@ -79,7 +79,7 @@ then
 	fi
 	if [ $task = 2 ] || [ $task = 3 ]
 	then
-        	java renderfarm.instance.MultiThreadedWebServerMain AKIAIHG2QFKEH263YYYQ +bgBVpau0dQOMzXuYiXyKG2bpbtzeXYlLxy6Eogf
+        	java renderfarm.renderinstance.MultiThreadedWebServerMain AKIAIHG2QFKEH263YYYQ +bgBVpau0dQOMzXuYiXyKG2bpbtzeXYlLxy6Eogf
     	else
         	java renderfarm.loadbalancer.LoadBalancerMain AKIAIHG2QFKEH263YYYQ +bgBVpau0dQOMzXuYiXyKG2bpbtzeXYlLxy6Eogf
     	fi

@@ -40,9 +40,11 @@ public final class BestLoadBalancing extends LoadBalancing {
 					for(RenderFarmInstance instance : currentInstances) {
 						if(instance.getLoadLevel()+req.getWeight() > MAXIMUM_LOAD) {
 							while(!im.isInstanceRunning(previous_instance)){
+								System.out.println("[BestLoadBalancing]1 " + previous_instance.getIp());
 								Thread.sleep(3000);
 							}
 							while(!new RenderFarmInstanceHealthCheck(previous_instance.getIp()).isUp()) {
+								System.out.println("[BestLoadBalancing]2 " + previous_instance.getIp());
 								Thread.sleep(3000);
 							}
 							return previous_instance;
@@ -50,9 +52,11 @@ public final class BestLoadBalancing extends LoadBalancing {
 						previous_instance = instance;	
 					}
 					while(!im.isInstanceRunning(previous_instance)) {
+						System.out.println("[BestLoadBalancing]3 " + previous_instance.getIp());
 						Thread.sleep(3000);
 					}
 					while(!new RenderFarmInstanceHealthCheck(previous_instance.getIp()).isUp()) {
+						System.out.println("[BestLoadBalancing]4 " + previous_instance.getIp());
 						Thread.sleep(3000);
 					}
 					return previous_instance;	//TODO

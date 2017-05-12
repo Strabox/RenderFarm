@@ -161,7 +161,7 @@ public class RequestHandler implements HttpHandler {
 		int bytesRead;
 		boolean retry = false;
 		InputStream in = null;
-		KeepAliveThread keepAliveThread = null;
+		//KeepAliveThread keepAliveThread = null;
 		RenderFarmInstance selectedInstance = null;
 		try {
 			System.out.println("[Handler]Looking for best instance..");
@@ -172,12 +172,12 @@ public class RequestHandler implements HttpHandler {
 			connection.setConnectTimeout(CONNECTION_TIMEOUT);
 			connection.setReadTimeout(MAXIMUM_TIME_FOR_RENDERING);
 			connection.connect();
-			keepAliveThread = new KeepAliveThread(connection, selectedInstance.getIp());
-			keepAliveThread.start();
+			//keepAliveThread = new KeepAliveThread(connection, selectedInstance.getIp());
+			//keepAliveThread.start();
 			System.out.println("[Handler]Getting response code...");
 			System.out.println("[Handler]Getting input stream...");
 			in = connection.getInputStream();
-			keepAliveThread.terminate();
+			//keepAliveThread.terminate();
 			http.sendResponseHeaders(RenderFarmUtil.HTTP_OK, 0);
 			byte[] buffer = new byte[BUFFER_SIZE];
 			System.out.println("[Handler]Waiting for instance reply with image...");
@@ -195,9 +195,9 @@ public class RequestHandler implements HttpHandler {
 			// WEIRD CASE
 			// TODO what we do if there are no instances to handle the request ?
 		} finally {	//Set all the resources free (Request processed with SUCCESS)
-			if(keepAliveThread != null) {
-				keepAliveThread.terminate();
-			}
+			//if(keepAliveThread != null) {
+			//	keepAliveThread.terminate();
+			//}
 			try {
 				if(out != null) {
 					out.close();
