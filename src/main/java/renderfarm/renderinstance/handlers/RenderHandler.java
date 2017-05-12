@@ -62,9 +62,8 @@ public class RenderHandler implements HttpHandler {
 				metric.setNormalizedWindow(NormalizedWindow
 						.BuildNormalizedWindow(sceneWidth, sceneHeight, windowWidth, windowHeight, collumnOffset, rowOffset));
 
-				out.write(new byte[1]);
 				Main.main(args);	// Executing the raytracing requested.
-				
+
 				response = "Ok request: " + t.getRequestURI().getQuery();
 				File image = new File("out" + Thread.currentThread().getId() + ".bmp");
 				t.sendResponseHeaders(RenderFarmUtil.HTTP_OK, image.length());
