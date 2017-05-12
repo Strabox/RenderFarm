@@ -23,7 +23,7 @@ public class FilipeStyleLoadBalancing extends LoadBalancing {
 	@Override
 	public RenderFarmInstance getFitestMachineAlgorithm(RenderFarmInstanceManager im, Request req)
 			throws NoInstancesToHandleRequestException {
-		List<RenderFarmInstance> currentInstances = im.getCurrentInstances();
+		List<RenderFarmInstance> currentInstances = im.getCurrentRunningInstances();
 		synchronized(currentInstances) {
 			for(RenderFarmInstance instance : currentInstances){
 	       	 	if(im.isInstanceRunning(instance)){

@@ -28,11 +28,7 @@ import com.amazonaws.services.ec2.model.Instance;
 import com.amazonaws.services.ec2.model.InstanceState;
 import com.amazonaws.services.ec2.model.InstanceStateChange;
 
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import renderfarm.util.SystemConfiguration;
+import renderfarm.util.RenderFarmInstanceHealthCheck;
 
 /**
  * Class to manage the operations of our render farm instances
@@ -41,33 +37,20 @@ import renderfarm.util.SystemConfiguration;
  */
 public class RenderFarmInstanceManager {
 
+	/**
+	 * Amazon Web Services configurations.
+	 */
 	private static final Regions AVAILABILITY_ZONE = Regions.US_WEST_2;
 	private static final String RENDER_INSTANCE_TYPE = "t2.micro";
 	private static final String SECURITY_GROUP = "cnv-ssh+http";
 	private static final String RENDER_IMAGE_ID = "ami-f2325792";
 	private static final String RENDER_KEY_PAIR_NAME = "PROJECT_FINAL_KEY";
-	/**
-	 * Timeout to establish the connection with the instance.
-	 */
-	private final static int CONNECTION_TIMEOUT = 10000;
-	
-	/**
-	 * Timeout waiting for the render farm Health Check reply.
-	 */
-	private final static int WAIT_FOR_REPLY_TIMEOUT = 5000;
-	
-	/**
-	 * Time interval of pooling the Health Check.
-	 */
-	private final static int INTERVAL_OF_POOLING = 10000;
-	
-
 	
 	//AmazonEC2 API Object
 	private AmazonEC2 ec2;	//Thread Safe
 	
-	//All the instances that we think that are currently running
-	private List<RenderFarmInstance> currentInstances;	//Thread Safe (except when iterating)
+	//Represents all the render farm instances currently running
+	private List<RenderFarmInstance> currentInstances;	//Thread Safe (EXCEPT when iterating)
 	
 	//Object that implements the load balancing logic
 	private LoadBalancing loadBalancing;				//Thread Safe
@@ -107,7 +90,7 @@ public class RenderFarmInstanceManager {
 	}
 	
 	/**
-	 * Launch render farm instances instances in AWS
+	 * Launch render nInstances farm instances instances in AWS
 	 * @param nInstances Number of instances to launch
 	 * @throws AmazonServiceException
 	 */
@@ -127,6 +110,11 @@ public class RenderFarmInstanceManager {
         }
 	}
 
+	/**
+	 * Launch a single render farm instance in AWS
+	 * @return RendarfarmInstance local structure that was launched
+	 * @throws AmazonServiceException
+	 */
 	public RenderFarmInstance launchInstance() throws AmazonServiceException {
 		RunInstancesRequest runInstancesRequest = new RunInstancesRequest();
         runInstancesRequest.withImageId(RENDER_IMAGE_ID)
@@ -143,12 +131,19 @@ public class RenderFarmInstanceManager {
 	}
 	
 	/**
-	 * Terminate instances
-	 * @param instancesIds Array with all instances id we want terminate
+	 * Terminate instances that we no longer need
+	 * @param instancesIds List with all instances we want terminate
 	 */
-	public void terminateInstances(String[] instanceIds) {
+	public void terminateInstances(List<RenderFarmInstance> instancesToTerminate) {
+		List<String> goingToDie = new ArrayList<String>();
+		for(RenderFarmInstance instance : instancesToTerminate) {
+			//if true instance now can't receive more requests and has 0 requests running!
+			if(instance.readyToBeTerminated()) {
+				goingToDie.add(instance.getId());
+			}
+		}
 		TerminateInstancesRequest termInstanceReq = new TerminateInstancesRequest();
-		termInstanceReq.withInstanceIds(instanceIds);
+		termInstanceReq.withInstanceIds(goingToDie);
 		TerminateInstancesResult result = ec2.terminateInstances(termInstanceReq);
 		List<InstanceStateChange> instancesState = result.getTerminatingInstances();
 		for(InstanceStateChange instanceState : instancesState) {
@@ -189,10 +184,20 @@ public class RenderFarmInstanceManager {
 			for(RenderFarmInstance instance : currentInstances) {
 				if(instance.getId().equals(instanceId)) {
 					currentInstances.remove(instance);
-					break;
+					return;
 				}
 			}
 		}
+	}
+	
+	private List<String> getCurrentInstancesId() {
+		List<String> res = new ArrayList<String>();
+		synchronized (currentInstances) {
+			for(RenderFarmInstance instance: currentInstances) {
+				res.add(instance.getId());
+			}
+		}
+		return res;
 	}
 	
 	/**
@@ -200,14 +205,12 @@ public class RenderFarmInstanceManager {
 	 * @param instanceIP Instance IP
 	 * @param request Request to be deleted
 	 */
-	public void removeRequestFromInstance(String instanceID,Request request) {
-		synchronized(currentInstances) {
-			for(RenderFarmInstance instance : currentInstances) {
-				if(instance.getId().equals(instanceID)) {
-					instance.removeRequest(request);
-					return;
-				}
-			}
+	public void removeRequestFromInstance(RenderFarmInstance instance,Request request) {
+		if(currentInstances.indexOf(instance) != -1) {
+			currentInstances.get(currentInstances.indexOf(instance)).removeRequest(request);
+		}
+		else {
+			return;
 		}
 	}
 	
@@ -229,9 +232,9 @@ public class RenderFarmInstanceManager {
 	
 	/**
 	 * Get all current instances
-	 * @return
+	 * @return List of the current running instances
 	 */
-	public List<RenderFarmInstance> getCurrentInstances(){
+	public List<RenderFarmInstance> getCurrentRunningInstances(){
 		return currentInstances;
 	}
 	
@@ -242,39 +245,22 @@ public class RenderFarmInstanceManager {
 	 * @throws NoInstancesToHandleRequestException 
 	 * @throws RedirectFailedException 
 	 */
-	public RenderFarmInstance getHandlerInstanceIP(Request request) throws NoInstancesToHandleRequestException, RedirectFailedException{
+	public RenderFarmInstance getHandlerInstanceIP(Request request) 
+			throws NoInstancesToHandleRequestException, RedirectFailedException {
 		return loadBalancing.getFitestMachine(this, request);
 	}
 
-	public boolean isInstanceWorking(RenderFarmInstance instance){
-		HttpURLConnection connection = null;
-		try{	
-			URL url = new URL("http",instance.getIp(),SystemConfiguration.RENDER_INSTANCE_PORT,"/HealthCheck");
-			connection = (HttpURLConnection) url.openConnection();
-			connection.setConnectTimeout(CONNECTION_TIMEOUT);
-			connection.setReadTimeout(WAIT_FOR_REPLY_TIMEOUT);
-			if(connection.getResponseCode() == HttpURLConnection.HTTP_OK) {
-				connection.disconnect();
-				return true;
-			}
-			return false;
-		}
-		catch(Exception e) {
-			System.out.println("[isInstanceRunning] Something is not right with the instance");
-		}
-		return false;
-
-	}
 	
 	public RenderFarmInstance createReadyInstance(){
 		//TODO Tornar o metodo indestrutivel
+		final int polling_interval = 1000;
 		try{
 			RenderFarmInstance instance =launchInstance();
 			while(!isInstanceRunning(instance)){
-				Thread.sleep(1000);
+				Thread.sleep(polling_interval);
 			}
-			while(!isInstanceWorking(instance)){
-				Thread.sleep(1000);
+			while(!new RenderFarmInstanceHealthCheck(instance.getIp()).isUp()){
+				Thread.sleep(polling_interval);
 			}
 			return instance;
 		}

@@ -16,13 +16,17 @@ public class Request {
 	
 	private final long scenePixelsResolution;
 	
+	private final long windowResolution;
+	
 	private int weight;
 	
-	public Request(String file,NormalizedWindow normalizedWindow,long scenePixelsResolution){
+	public Request(String file,NormalizedWindow normalizedWindow,long scenePixelsResolution,
+			long windowResolution){
 		this.file = file;
 		this.normalizedWindow = normalizedWindow;
 		this.scenePixelsResolution = scenePixelsResolution;
 		this.weight = 0;
+		this.windowResolution = windowResolution;
 	}
 
 	public String getFile() {
@@ -39,6 +43,10 @@ public class Request {
 
 	public long getScenePixelsResolution() {
 		return this.scenePixelsResolution;
+	}
+	
+	public long getwindowResolution() {
+		return this.windowResolution;
 	}
 	
 	public void setWeight(int weight) {

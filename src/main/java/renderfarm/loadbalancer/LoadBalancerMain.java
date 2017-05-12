@@ -9,9 +9,9 @@ import renderfarm.autoscaler.AutoScaler;
 import renderfarm.dynamo.AmazonDynamoDB;
 import renderfarm.loadbalancer.handlers.FarmStatusHandler;
 import renderfarm.loadbalancer.handlers.RequestHandler;
-import renderfarm.loadbalancer.loadbalancing.FilipeStyleLoadBalancing;
 import renderfarm.loadbalancer.loadbalancing.LoadBalancing;
 import renderfarm.loadbalancer.loadbalancing.BestLoadBalancing;
+
 /**
  * Main class to launch and hold our custom Load Balancer
  * @author Andre
@@ -20,14 +20,23 @@ import renderfarm.loadbalancer.loadbalancing.BestLoadBalancing;
 public class LoadBalancerMain {
 	
 	/**
-	 * Load balancer PORT to accept the http requests.
+	 * Load balancer PORT to accept the HTTP requests.
 	 */
 	private static final int LOAD_BALANCER_PORT = 8000;
 	
+	/**
+	 * Render farm instances manager
+	 */
 	private static RenderFarmInstanceManager instanceManager;
 	
+	/**
+	 * Our load balancer entry point.
+	 * @param args
+	 * @throws InterruptedException
+	 * @throws IOException
+	 */
 	public static void main(String[] args) throws InterruptedException, IOException {
-		System.out.println("Starting Load Balancer...");
+		System.out.println("[LOADBALANCER MAIN]Set up load balancer...");
 		AmazonDynamoDB dynamoDB;
 		LoadBalancing loadBalacing;
 		if(args.length >= 2) {
@@ -41,10 +50,6 @@ public class LoadBalancerMain {
 		}
 		initAutoScaler();
 		initLoadBalancer();
-		/*dynamoDB.putItem("file1.txt", (float) 0.5,(float) 0.5,(float) 0.5,(float) 0.5, (long)1000000,300000000000000000L,(long)2000000,(long)222222222, 5);
-		dynamoDB.putItem("file2.txt", (float) 0.5,(float) 0.5,(float) 0.5,(float) 0.5, (long)1000000,(long)300,(long)2000000,(long)222222222, 5);
-		List<Metric> metric=dynamoDB.getIntersectiveItems("file1.txt", (float) 0.5, (float) 0.5, (float) 0.5, (float) 0.5);
-		System.out.println(metric.get(0).toString());*/
 	}
 	
 	/**
@@ -56,7 +61,7 @@ public class LoadBalancerMain {
 	}
 	
 	/**
-	 * Start the load balancer webserver to start receiving requests
+	 * Start the load balancer web server to start receiving requests
 	 * @throws IOException
 	 */
 	private static void initLoadBalancer() {
@@ -68,9 +73,9 @@ public class LoadBalancerMain {
 			server.createContext("/FarmStatus", new FarmStatusHandler(instanceManager));
 			server.setExecutor(Executors.newCachedThreadPool());	//Warning: Unbounded thread limit
 			server.start();
-			System.out.println("Loadbalancer, listening on Port: " + LOAD_BALANCER_PORT);
+			System.out.println("[LOADBALANCER MAIN]Loadbalancer, listening on Port: " + LOAD_BALANCER_PORT);
 		} catch(IOException e) {
-			System.out.println("Problem starting Load Balancer web server, exiting...");
+			System.out.println("[LOADBALANCER MAIN]Problem starting Load Balancer web server, exiting...");
 			e.printStackTrace();
 			System.exit(-1);
 		}

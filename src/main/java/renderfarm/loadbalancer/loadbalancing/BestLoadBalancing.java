@@ -7,6 +7,8 @@ import renderfarm.dynamo.AmazonDynamoDB;
 import renderfarm.loadbalancer.RenderFarmInstance;
 import renderfarm.loadbalancer.RenderFarmInstanceManager;
 import renderfarm.loadbalancer.Request;
+import renderfarm.loadbalancer.exceptions.NoInstancesToHandleRequestException;
+import renderfarm.util.RenderFarmInstanceHealthCheck;
 
 /**
  * Class that implements our best load balancing algorithm
@@ -15,6 +17,9 @@ import renderfarm.loadbalancer.Request;
  */
 public final class BestLoadBalancing extends LoadBalancing {
 
+	/**
+	 * Maximum load we want in an instance
+	 */
 	private static final int MAXIMUM_LOAD = 8;
 
 	public BestLoadBalancing(AmazonDynamoDB dynamoDB) {
@@ -22,44 +27,40 @@ public final class BestLoadBalancing extends LoadBalancing {
 	}
 	
 	@Override
-	public RenderFarmInstance getFitestMachineAlgorithm(RenderFarmInstanceManager im, Request req) {
+	public RenderFarmInstance getFitestMachineAlgorithm(RenderFarmInstanceManager im, Request req) throws NoInstancesToHandleRequestException {
 		try{
-			
-			List<RenderFarmInstance> currentInstances = im.getCurrentInstances();
-			RenderFarmInstance previous_instance=null;
+			List<RenderFarmInstance> currentInstances = im.getCurrentRunningInstances();
+			RenderFarmInstance previous_instance = null;
 			synchronized(currentInstances) {
 				Collections.sort(currentInstances);	//Sort the list by load level in ASCENDING order
 				if(currentInstances.isEmpty() || currentInstances.get(0).getLoadLevel()+req.getWeight() > MAXIMUM_LOAD){
 					return im.createReadyInstance();
 				}
-				else{
-					for(RenderFarmInstance instance : currentInstances){
-						if(instance.getLoadLevel()+req.getWeight()>MAXIMUM_LOAD){
+				else {
+					for(RenderFarmInstance instance : currentInstances) {
+						if(instance.getLoadLevel()+req.getWeight() > MAXIMUM_LOAD) {
 							while(!im.isInstanceRunning(previous_instance)){
 								Thread.sleep(3000);
 							}
-							while(!im.isInstanceWorking(previous_instance)){
+							while(!new RenderFarmInstanceHealthCheck(previous_instance.getIp()).isUp()) {
 								Thread.sleep(3000);
 							}
 							return previous_instance;
 						}
-						previous_instance=instance;	
+						previous_instance = instance;	
 					}
-					while(!im.isInstanceRunning(previous_instance)){
+					while(!im.isInstanceRunning(previous_instance)) {
 						Thread.sleep(3000);
 					}
-					while(!im.isInstanceWorking(previous_instance)){
+					while(!new RenderFarmInstanceHealthCheck(previous_instance.getIp()).isUp()) {
 						Thread.sleep(3000);
 					}
 					return previous_instance;	//TODO
 				}		
 			}
 		}
-		catch(Exception e){
-			System.out.println("[getFitestMachineAlgorithm] Problem finding Instance");
-			return null;
+		catch(Exception e) {
+			throw new NoInstancesToHandleRequestException();
 		}
 	}
-
-
 }

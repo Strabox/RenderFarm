@@ -56,7 +56,7 @@ public class RequestHandler implements HttpHandler {
 	 * NOTE: This maximum will only occur if many Render Instances
 	 * fail during the requests.
 	 */
-	private static final int MAXIMUM_NUMBER_OF_RETRIES = 4;
+	private static final int MAXIMUM_NUMBER_OF_RETRIES = 3;
 
 	/**
 	 * Render farm instance manager.
@@ -90,7 +90,7 @@ public class RequestHandler implements HttpHandler {
 			
 			request = new Request(paramMap.get("f") ,
 					NormalizedWindow.BuildNormalizedWindow(sceneWidth, sceneHeight, windowWidth, windowHeight, collumnOffset, rowOffset)
-					,sceneHeight * sceneWidth);
+					,sceneHeight * sceneWidth,windowWidth * windowHeight);
 			
 			for(int i = 0; i < MAXIMUM_NUMBER_OF_RETRIES; i++) {
 				try {
@@ -175,13 +175,13 @@ public class RequestHandler implements HttpHandler {
 			keepAliveThread = new KeepAliveThread(connection, selectedInstance.getIp());
 			keepAliveThread.start();
 			System.out.println("[Handler]Getting response code...");
-			connection.getResponseCode();
 			System.out.println("[Handler]Getting input stream...");
 			in = connection.getInputStream();
 			keepAliveThread.terminate();
 			http.sendResponseHeaders(RenderFarmUtil.HTTP_OK, 0);
 			byte[] buffer = new byte[BUFFER_SIZE];
 			System.out.println("[Handler]Waiting for instance reply with image...");
+			in.read(buffer, 0, 1);
 			while ((bytesRead = in.read(buffer)) != -1)
 			{
 	    		out.write(buffer, 0, bytesRead);
@@ -213,7 +213,7 @@ public class RequestHandler implements HttpHandler {
 			}
 			if(request != null && selectedInstance != null) {
 				//Remove the request from the instance structure.
-				instanceManager.removeRequestFromInstance(selectedInstance.getId(), request);
+				instanceManager.removeRequestFromInstance(selectedInstance, request);
 			}
 			if(retry) {
 				throw new RedirectFailedException();

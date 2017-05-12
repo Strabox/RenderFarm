@@ -12,7 +12,7 @@ import renderfarm.loadbalancer.exceptions.InstanceCantReceiveMoreRequestsExcepti
  * @author Andre
  *
  */
-public class RenderFarmInstance implements Comparable<RenderFarmInstance>{
+public class RenderFarmInstance implements Comparable<RenderFarmInstance> {
 	
 	public static final int RUNNING = 16; 
 	public static final int SHUTTING_DOWN = 32; 
@@ -21,28 +21,36 @@ public class RenderFarmInstance implements Comparable<RenderFarmInstance>{
 	public static final int STOPPED = 80; 
 	
 	/**
-	 * Instance IP
+	 * Instance's IP
 	 */
 	private volatile String ip;
 	
 	/**
-	 * Instance ID
+	 * Instance's AWS ID
 	 */
 	private final String id;
 	
 	/**
-	 * All the request running in the instance
+	 * All the request running in the instance at the moment
 	 */
 	private final List<Request> requestsInExecution;	//Thread Safe
 
 	/**
-	 * true if the instance should stop accepting requests
-	 * false otherwise 
+	 * ->True if it is signed to be terminated but can receive requests
+	 * that should set this flag to false
+	 * ->False can accept request normally  
 	 */
-	private final AtomicBoolean stopReceiveRequests;
+	private final AtomicBoolean signalToBeTerminated;
 	
 	/**
-	 * The estimate for our instance load [0,10[
+	 * Going to be terminate the instance
+	 * ->If true can't accept new requests or have requests pending
+	 * ->Otherwise instance can accept
+	 */
+	private final AtomicBoolean goingToBeTerminated;
+	
+	/**
+	 * The estimate for our instance load [0,10]
 	 */
 	private volatile int loadLevel;
 	
@@ -50,39 +58,61 @@ public class RenderFarmInstance implements Comparable<RenderFarmInstance>{
 		this.ip = null;
 		this.id = id;
 		this.loadLevel = 0;
-		this.stopReceiveRequests = new AtomicBoolean(false);
+		this.signalToBeTerminated = new AtomicBoolean(false);
+		this.goingToBeTerminated = new AtomicBoolean(false);
 		this.requestsInExecution = Collections.synchronizedList(new ArrayList<Request>());
 	}
 	
 	public synchronized void addRequest(Request req) throws InstanceCantReceiveMoreRequestsException {
-		if(stopReceiveRequests.get()) {
+		if(goingToBeTerminated.get()) {
 			throw new InstanceCantReceiveMoreRequestsException();
+		}
+		if(signalToBeTerminated.get()) {
+			signalToBeTerminated.set(false);
 		}
 		requestsInExecution.add(req);
 		loadLevel += req.getWeight();
 	}
 	
 	public synchronized void removeRequest(Request req) {
-		requestsInExecution.remove(req);
-		loadLevel -= req.getWeight();
+		if(requestsInExecution.remove(req)) {
+			loadLevel -= req.getWeight();
+		}
+	}
+
+	/**
+	 * If it was marked to be terminated and didn't receive a request in the meantime
+	 * so the instance is marked to be terminated and can't receive more requests.
+	 * @return
+	 */
+	public synchronized boolean readyToBeTerminated() {
+		if(signalToBeTerminated.get()) {
+			goingToBeTerminated.set(true);
+			return true;
+		}
+		else {
+			return false;
+		}
 	}
 	
-	public void stopReceivingRequests() {
-		stopReceiveRequests.set(true);
-	}
-	
-	public void continueReceivingRequests() {
-		stopReceiveRequests.set(false);
-	}
-	
-	public boolean stoppedFromReceivingRequests() {
-		return stopReceiveRequests.get();
+	/**
+	 * Sign the instance to see if it is in state that can be terminated (0 requests processing).
+	 * @return
+	 */
+	public synchronized boolean readyToSignToTerminate() {
+		if(requestsInExecution.isEmpty()) {
+			signalToBeTerminated.set(true);
+			return true;
+		}
+		else {
+			return false;
+		}
 	}
 	
 	public synchronized boolean isEmpty() {
 		return requestsInExecution.isEmpty();
 	}
-	
+
 	public synchronized int getLoadLevel() {
 		return loadLevel;
 	}
@@ -100,7 +130,7 @@ public class RenderFarmInstance implements Comparable<RenderFarmInstance>{
 	}
 	
 	@Override
-	public synchronized boolean equals(Object obj) {
+	public boolean equals(Object obj) {
 		if(this == obj) {
 			return true;
 		}
@@ -112,7 +142,7 @@ public class RenderFarmInstance implements Comparable<RenderFarmInstance>{
 	}
 	
 	@Override
-	public int hashCode() {
+	public synchronized int hashCode() {
 		return super.hashCode();
 	}
 	
@@ -135,12 +165,20 @@ public class RenderFarmInstance implements Comparable<RenderFarmInstance>{
 	}
 
 	@Override
-	public int compareTo(RenderFarmInstance o) {
+	public synchronized int compareTo(RenderFarmInstance o) {
 		if(this.loadLevel < o.getLoadLevel()) {
 			return -1;
 		}
-		else if(this.loadLevel == o.getLoadLevel()) {
-			return 0;
+		else if(this.loadLevel == o.getLoadLevel()) {	
+			if(this.isEmpty() && !o.isEmpty()) {
+				return -1;
+			}
+			else if(!this.isEmpty() && !o.isEmpty()) {
+				return 1;
+			}
+			else {
+				return 0;
+			}
 		}
 		else {
 			return 1;
