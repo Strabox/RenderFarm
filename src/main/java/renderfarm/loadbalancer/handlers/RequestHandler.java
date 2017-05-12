@@ -181,7 +181,6 @@ public class RequestHandler implements HttpHandler {
 			http.sendResponseHeaders(RenderFarmUtil.HTTP_OK, 0);
 			byte[] buffer = new byte[BUFFER_SIZE];
 			System.out.println("[Handler]Waiting for instance reply with image...");
-			in.read(buffer, 0, 1);
 			while ((bytesRead = in.read(buffer)) != -1)
 			{
 	    		out.write(buffer, 0, bytesRead);
