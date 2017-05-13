@@ -33,12 +33,12 @@ public final class BestLoadBalancing extends LoadBalancing {
 			RenderFarmInstance previous_instance = null;
 			synchronized(currentInstances) {
 				Collections.sort(currentInstances);	//Sort the list by load level in ASCENDING order
-				if(currentInstances.isEmpty() || currentInstances.get(0).getLoadLevel()+req.getWeight() > MAXIMUM_LOAD){
+				if(currentInstances.isEmpty() || currentInstances.get(0).getLoadLevel() + req.getWeight() > MAXIMUM_LOAD){
 					return im.createReadyInstance();
 				}
 				else {
 					for(RenderFarmInstance instance : currentInstances) {
-						if(instance.getLoadLevel()+req.getWeight() > MAXIMUM_LOAD) {
+						if(instance.getLoadLevel() + req.getWeight() > MAXIMUM_LOAD) {
 							while(!im.isInstanceRunning(previous_instance)){
 								System.out.println("[BestLoadBalancing]1 " + previous_instance.getIp());
 								Thread.sleep(3000);

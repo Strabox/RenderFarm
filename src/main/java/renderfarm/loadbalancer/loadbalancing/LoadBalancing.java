@@ -68,7 +68,7 @@ public abstract class LoadBalancing {
 				req.getNormalizedWindow().getY(), req.getNormalizedWindow().getWidth(),
 				req.getNormalizedWindow().getHeight());
 		Metric fitestMetric = null;
-		float fitestMetricScaleFactor = 0, fitestMetricOverlappingArea = 0;
+		float fitestMetricScaleFactor = 0, fitestMetricOverlappingArea = 0, fitestMetricBestFactor = -1;
 		long metricBasicBlockAdjustedScaleAndArea = 0, metricStoreCountAdjustedScaleAndArea = 0,
 				metricLoadCountAdjustedScaleAndArea = 0;
 		//No metrics that have overlapping windows with ours
@@ -78,19 +78,38 @@ public abstract class LoadBalancing {
 		}
 		System.out.println("[EstimateRequestCost]Searching in " + metricsStored.size() + " metrics");
 		for(Metric metric : metricsStored) {
-			float requestScaleFactor = req.getScenePixelsResolution() / (float) metric.getScenePixelsResolution();
 			float overlappingArea = req.getNormalizedWindow().normalizedAreaOverlapping(metric.getNormalizedWindow());
-			if(overlappingArea >= fitestMetricOverlappingArea) {
-				System.out.println("Metric to be fitest: " + System.lineSeparator() + metric);
-				fitestMetric = metric;
-				fitestMetricOverlappingArea = overlappingArea;
-				fitestMetricScaleFactor = requestScaleFactor;
+			float metricAreaMinusOverlappingArea = 1 - (metric.getNormalizedWindow().getArea() - overlappingArea);
+			if(metricAreaMinusOverlappingArea < 0.00001) {			//All the metric area is inside the request
+				if(overlappingArea > fitestMetricOverlappingArea) {
+					fitestMetricBestFactor = -1;
+					fitestMetricOverlappingArea = overlappingArea;
+					fitestMetricScaleFactor = req.getScenePixelsResolution() / (float) metric.getScenePixelsResolution();
+					fitestMetric = metric;
+				}
+			} else {
+				float bestMetricFactor = overlappingArea / (float) metricAreaMinusOverlappingArea;
+				if(fitestMetricBestFactor == -1) {
+					if(overlappingArea > fitestMetricOverlappingArea) {
+						fitestMetricBestFactor = bestMetricFactor;
+						fitestMetricOverlappingArea = overlappingArea;
+						fitestMetricScaleFactor = req.getScenePixelsResolution() / (float) metric.getScenePixelsResolution();
+						fitestMetric = metric;
+					}
+				}
+				else if(bestMetricFactor > fitestMetricBestFactor) {
+					fitestMetricBestFactor = bestMetricFactor;
+					fitestMetricOverlappingArea = overlappingArea;
+					fitestMetricScaleFactor = req.getScenePixelsResolution() / (float) metric.getScenePixelsResolution();
+					fitestMetric = metric;
+				}
 			}
 		}
 		if(fitestMetric == null) {
 			System.out.println("[EstimateRequestCost]Result: " + getDefaultRequestWeight(req.getwindowResolution()) + " [Default] no entries");
 			return getDefaultRequestWeight(req.getwindowResolution());
 		}
+		System.out.println("Fitest Metric: " + System.lineSeparator() + fitestMetric);
 		float overlappingAreaDivideByMetricArea = fitestMetricOverlappingArea / (float) fitestMetric.getNormalizedWindow().getArea();
 		float overlappingAreaDividedByRequestArea = fitestMetricOverlappingArea / (float) req.getNormalizedWindow().getArea();
 		//Obtain the measures from the selected metric and multiply it by the resolution scale and
@@ -148,12 +167,12 @@ public abstract class LoadBalancing {
 	}
 	
 	/**
-	 * Return the default weight for a slice of the request we have no idea about.
+	 * Return the default weight for the slice of the request we have no idea about.
 	 * @return
 	 */
 	private int getDefaultRequestWeight(long windowResolution) {
 		if(windowResolution <= (500 * 500)) {
-			return 2;
+			return 3;
 		}
 		else if(windowResolution <= (1000 * 1000)) {
 			return 5;

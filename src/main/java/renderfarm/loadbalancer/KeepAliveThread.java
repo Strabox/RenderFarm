@@ -11,7 +11,7 @@ public class KeepAliveThread extends Thread {
 	/**
 	 * Time interval of pooling the Health Check.
 	 */
-	private final static int INTERVAL_OF_POLLING = 10000;
+	private final static int INTERVAL_OF_POLLING = 15 * 1000;
 	
 	/**
 	 * Handler thread connection.

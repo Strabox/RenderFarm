@@ -64,7 +64,8 @@ public class Request {
 		Request r = (Request) o;
 		return this.getFile().equals(r.getFile()) && 
 				this.getNormalizedWindow().equals(r.getNormalizedWindow()) &&
-				(this.getScenePixelsResolution() == r.getScenePixelsResolution());
+				this.scenePixelsResolution == r.getScenePixelsResolution() &&
+				this.windowResolution == r.getwindowResolution();
 	}
 	
 	@Override

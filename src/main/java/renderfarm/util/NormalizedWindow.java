@@ -126,6 +126,12 @@ public class NormalizedWindow {
 	
 	@Override
 	public boolean equals(Object obj) {
+		if(this == obj) {
+			return true;
+		}
+		if(obj == null || getClass() != obj.getClass()) {
+			return false;
+		}
 		NormalizedWindow nw = (NormalizedWindow) obj;
 		boolean x = Math.abs(this.getX() - nw.getX()) < WINDOW_ERRORS;
 		boolean y = Math.abs(this.getY() - nw.getY()) < WINDOW_ERRORS;

@@ -200,19 +200,6 @@ public class RenderFarmInstanceManager {
 		return res;
 	}
 	
-	/**
-	 * Remove a request from a render farm instance
-	 * @param instanceIP Instance IP
-	 * @param request Request to be deleted
-	 */
-	public void removeRequestFromInstance(RenderFarmInstance instance,Request request) {
-		if(currentInstances.indexOf(instance) != -1) {
-			currentInstances.get(currentInstances.indexOf(instance)).removeRequest(request);
-		}
-		else {
-			return;
-		}
-	}
 	
 	/**
 	 * Verify in AWS if the instance is running or not.
@@ -225,7 +212,7 @@ public class RenderFarmInstanceManager {
    	 	DescribeInstancesResult res = ec2.describeInstances(describeInstancesRequest);
    	 	InstanceState state = res.getReservations().get(0).getInstances().get(0).getState();
    	 	if(instance.getIp() == null) {
-   	 		instance.setIp(res.getReservations().get(0).getInstances().get(0).getPublicIpAddress());
+   	 		instance.setIp(res.getReservations().get(0).getInstances().get(0).getPrivateIpAddress());
    	 	}
    	 	return state.getCode() == RenderFarmInstance.RUNNING;
 	}
