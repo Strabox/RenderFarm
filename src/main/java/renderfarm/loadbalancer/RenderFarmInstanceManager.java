@@ -212,7 +212,7 @@ public class RenderFarmInstanceManager {
    	 	DescribeInstancesResult res = ec2.describeInstances(describeInstancesRequest);
    	 	InstanceState state = res.getReservations().get(0).getInstances().get(0).getState();
    	 	if(instance.getIp() == null) {
-   	 		instance.setIp(res.getReservations().get(0).getInstances().get(0).getPrivateIpAddress());
+   	 		instance.setIp(res.getReservations().get(0).getInstances().get(0).getPublicIpAddress());
    	 	}
    	 	return state.getCode() == RenderFarmInstance.RUNNING;
 	}
