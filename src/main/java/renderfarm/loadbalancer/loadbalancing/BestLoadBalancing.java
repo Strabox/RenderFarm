@@ -9,6 +9,7 @@ import renderfarm.loadbalancer.RenderFarmInstanceManager;
 import renderfarm.loadbalancer.Request;
 import renderfarm.loadbalancer.exceptions.NoInstancesToHandleRequestException;
 import renderfarm.util.RenderFarmInstanceHealthCheck;
+import java.io.Console;
 
 /**
  * Class that implements our best load balancing algorithm
@@ -28,40 +29,42 @@ public final class BestLoadBalancing extends LoadBalancing {
 	
 	@Override
 	public RenderFarmInstance getFitestMachineAlgorithm(RenderFarmInstanceManager im, Request req) throws NoInstancesToHandleRequestException {
+		RenderFarmInstance previous_instance =null;
 		try{
 			List<RenderFarmInstance> currentInstances = im.getCurrentRunningInstances();
-			RenderFarmInstance previous_instance = null;
 			synchronized(currentInstances) {
-				Collections.sort(currentInstances);	//Sort the list by load level in ASCENDING order
-				if(currentInstances.isEmpty() || currentInstances.get(0).getLoadLevel() + req.getWeight() > MAXIMUM_LOAD){
-					return im.createReadyInstance();
+				Collections.sort(currentInstances);
+				 previous_instance = currentInstances.get(0);	//Sort the list by load level in ASCENDING order
+				if(currentInstances.isEmpty() || ((currentInstances.get(0).getLoadLevel() + req.getWeight() > MAXIMUM_LOAD)&&(currentInstances.get(0).getLoadLevel()<=2))) {
+					previous_instance=null;
 				}
 				else {
 					for(RenderFarmInstance instance : currentInstances) {
 						if(instance.getLoadLevel() + req.getWeight() > MAXIMUM_LOAD) {
-							while(!im.isInstanceRunning(previous_instance)){
-								System.out.println("[BestLoadBalancing]1 " + previous_instance.getIp());
-								Thread.sleep(3000);
-							}
-							while(!new RenderFarmInstanceHealthCheck(previous_instance.getIp()).isUp()) {
-								System.out.println("[BestLoadBalancing]2 " + previous_instance.getIp());
-								Thread.sleep(3000);
-							}
-							return previous_instance;
+							break ;
+
 						}
 						previous_instance = instance;	
 					}
-					while(!im.isInstanceRunning(previous_instance)) {
-						System.out.println("[BestLoadBalancing]3 " + previous_instance.getIp());
-						Thread.sleep(3000);
+					if(previous_instance.getIp()==null){
+						while(!im.isInstanceRunning(previous_instance)) {
+							System.out.println("[BestLoadBalancing]3 " + previous_instance.getIp());
+							Thread.sleep(3000);
+						}
 					}
-					while(!new RenderFarmInstanceHealthCheck(previous_instance.getIp()).isUp()) {
+
+					RenderFarmInstanceHealthCheck check= new RenderFarmInstanceHealthCheck(previous_instance.getIp());
+					while(!check.isUp()) {
 						System.out.println("[BestLoadBalancing]4 " + previous_instance.getIp());
-						Thread.sleep(3000);
+						Thread.sleep(1000);
 					}
 					return previous_instance;	//TODO
-				}		
+
+				}
 			}
+			return im.createReadyInstance();
+				
+					
 		}
 		catch(Exception e) {
 			throw new NoInstancesToHandleRequestException();
