@@ -65,13 +65,14 @@ public class LoadBalancerMain {
 	 * @throws IOException
 	 */
 	private static void initLoadBalancer() {
+		final int THREAD_POOL_SIZE = 30;
 		try {
 			System.out.println("Initializing load balancing algorithm");
 			System.out.println("Initializing load balancer request handler");
 			HttpServer server = HttpServer.create(new InetSocketAddress(LOAD_BALANCER_PORT), 0);
 			server.createContext("/r.html", new RequestHandler(instanceManager));
 			server.createContext("/FarmStatus", new FarmStatusHandler(instanceManager));
-			server.setExecutor(Executors.newCachedThreadPool());	//Warning: Unbounded thread limit
+			server.setExecutor(Executors.newFixedThreadPool(THREAD_POOL_SIZE));
 			server.start();
 			System.out.println("[LOADBALANCER MAIN]Loadbalancer, listening on Port: " + LOAD_BALANCER_PORT);
 		} catch(IOException e) {

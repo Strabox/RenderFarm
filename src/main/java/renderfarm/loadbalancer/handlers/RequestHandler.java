@@ -19,6 +19,8 @@ import renderfarm.util.RenderFarmUtil;
 import renderfarm.util.SystemConfiguration;
 
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -44,12 +46,12 @@ public class RequestHandler implements HttpHandler {
 	/**
 	 * Maximum time for a rendering request.
 	 */
-	private static final int MAXIMUM_TIME_FOR_RENDERING =  (3 * (60 * 60) * 1000);
+	private static final int MAXIMUM_TIME_FOR_RENDERING =  (3 * ((60 * 60) * 1000));
 	
 	/**
 	 * Time interval between each retry in a request 
 	 */
-	private static final int TIME_INTERVAL_TO_RETRY = 1000;
+	private static final int TIME_INTERVAL_TO_RETRY = 2000;
 	
 	/**
 	 * Maximum number of tries that load balancer will do.
@@ -59,9 +61,9 @@ public class RequestHandler implements HttpHandler {
 	private static final int MAXIMUM_NUMBER_OF_RETRIES = 3;
 
 	/**
-	 * Render farm instance manager.
+	 * Render farm instance manager (Thread Safe)
 	 */
-	private final RenderFarmInstanceManager instanceManager;			//Thread safe
+	private final RenderFarmInstanceManager instanceManager;
 	
 	
 	public RequestHandler(RenderFarmInstanceManager instanceManager) {
@@ -107,10 +109,9 @@ public class RequestHandler implements HttpHandler {
 					e1.printStackTrace();
 				}
 			}
-			
-			System.out.println("[Handler]Rendering request processed with success");
+			System.out.println("[Handler]SUCCESS answer to request!");
 		} catch(InvalidRenderingRequestException e) {
-			System.out.println("[Handler]Request with wrong format");
+			System.out.println("[Handler]Request with wrong format!");
 			String response = "Bad request: " + http.getRequestURI().getQuery();
 			try{ 
 				http.sendResponseHeaders(RenderFarmUtil.HTTP_OK, response.length());
@@ -119,7 +120,7 @@ public class RequestHandler implements HttpHandler {
 				e.printStackTrace();
 			}
 		} catch(MaximumRedirectRetriesReachedException e) {
-			System.out.println("[Handler]Maximum retries reached");
+			System.out.println("[Handler]Maximum retries reached!");
 			String response = "Retry later maximum tries reached: " + http.getRequestURI().getQuery();
 			try{ 
 				http.sendResponseHeaders(RenderFarmUtil.HTTP_OK, response.length());
@@ -128,7 +129,7 @@ public class RequestHandler implements HttpHandler {
 				e.printStackTrace();
 			}
 		} catch(Exception e) {
-			System.out.println("[Handler]Something wrong happened");
+			System.out.println("[Handler]Something wrong happened, retry later!");
 			e.printStackTrace();
 			String response = "Something wrong happened, retry later: " + http.getRequestURI().getQuery();
 			try{ 
@@ -164,10 +165,11 @@ public class RequestHandler implements HttpHandler {
 		KeepAliveThread keepAliveThread = null;
 		RenderFarmInstance selectedInstance = null;
 		try {
-			System.out.println("[Handler]Looking for best instance..");
+			System.out.println("[Handler]Looking for best instance...");
 			selectedInstance = instanceManager.getHandlerInstanceIP(request);
-			URL url = new URL("http",selectedInstance.getIp(),SystemConfiguration.RENDER_INSTANCE_PORT,"/r.html?" + requestParams);
-			System.out.println("[Handler]Redirecting number of request to instance URL: " + url.toString());
+			System.out.println("[Handler]Best instance found!!!");
+			URL url = new URL("http",selectedInstance.getIp(), SystemConfiguration.RENDER_INSTANCE_PORT, "/r.html?" + requestParams);
+			System.out.println("[Handler]Redirecting request to instance URL: " + url.toString());
 			HttpURLConnection connection = (HttpURLConnection) url.openConnection();
 			connection.setConnectTimeout(CONNECTION_TIMEOUT);
 			connection.setReadTimeout(MAXIMUM_TIME_FOR_RENDERING);
@@ -185,14 +187,20 @@ public class RequestHandler implements HttpHandler {
 	    		out.write(buffer, 0, bytesRead);
 			}
 		} catch (IOException e) {	//Problem Rendering (Probably instance DIED) going to redirect
-			e.printStackTrace();
 			System.out.println("[Handler]Instance \"probably\" died, going to redirect to other instance");
+			e.printStackTrace();
 			retry = true;
+			if(selectedInstance != null) {
+				List<RenderFarmInstance> instanceToTerminate = new ArrayList<RenderFarmInstance>();
+				instanceToTerminate.add(selectedInstance);
+				selectedInstance.forceReadyToBeTerminated();
+				instanceManager.terminateInstances(instanceToTerminate);
+			}
 		} catch(NoInstancesToHandleRequestException e) {
+			System.out.println("[Handler]No instance found by the laod balancer, going to retry...");
 			retry = true;
-			// WEIRD CASE
-			// TODO what we do if there are no instances to handle the request ?
-		} finally {	//Set all the resources free (Request processed with SUCCESS)
+			// WEIRD CASE: The load balancer didn't choose a instance.
+		} finally {	//Set all the resources free and retry the request if needed
 			if(keepAliveThread != null) {
 				keepAliveThread.terminate();
 			}
@@ -213,7 +221,7 @@ public class RequestHandler implements HttpHandler {
 				//Remove the request from the instance structure.
 				selectedInstance.removeRequest(request);
 			}
-			if(retry) {
+			if(retry) {	//If something went wrong in the request retry to other machine
 				throw new RedirectFailedException();
 			}
 		}

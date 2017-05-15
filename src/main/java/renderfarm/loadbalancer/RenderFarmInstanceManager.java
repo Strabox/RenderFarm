@@ -38,7 +38,7 @@ import renderfarm.util.RenderFarmInstanceHealthCheck;
 public class RenderFarmInstanceManager {
 
 	/**
-	 * Amazon Web Services configurations.
+	 * Amazon Web Services configurations
 	 */
 	private static final Regions AVAILABILITY_ZONE = Regions.US_WEST_2;
 	private static final String RENDER_INSTANCE_TYPE = "t2.micro";
@@ -46,14 +46,14 @@ public class RenderFarmInstanceManager {
 	private static final String RENDER_IMAGE_ID = "ami-ff24409f";
 	private static final String RENDER_KEY_PAIR_NAME = "PROJECT_FINAL_KEY";
 	
-	//AmazonEC2 API Object
-	private AmazonEC2 ec2;	//Thread Safe
+	//AmazonEC2 API Object (THREAD SAFE)
+	private AmazonEC2 ec2;
 	
-	//Represents all the render farm instances currently running
-	private List<RenderFarmInstance> currentInstances;	//Thread Safe (EXCEPT when iterating)
+	//Represents all the render farm instances currently running (THREAD SAFE EXCEPT when iterating)
+	private List<RenderFarmInstance> currentInstances;
 	
-	//Object that implements the load balancing logic
-	private LoadBalancing loadBalancing;				//Thread Safe
+	//Object that implements the load balancing logic (THREAD SAFE)
+	private LoadBalancing loadBalancing;
 	
 	
 	public RenderFarmInstanceManager(LoadBalancing loadBalacing,boolean directCredentials,
@@ -190,17 +190,6 @@ public class RenderFarmInstanceManager {
 		}
 	}
 	
-	private List<String> getCurrentInstancesId() {
-		List<String> res = new ArrayList<String>();
-		synchronized (currentInstances) {
-			for(RenderFarmInstance instance: currentInstances) {
-				res.add(instance.getId());
-			}
-		}
-		return res;
-	}
-	
-	
 	/**
 	 * Verify in AWS if the instance is running or not.
 	 * @param instanceId AWS instance id
@@ -214,7 +203,7 @@ public class RenderFarmInstanceManager {
    	 	if(instance.getIp() == null) {
    	 		instance.setIp(res.getReservations().get(0).getInstances().get(0).getPublicIpAddress());
    	 	}
-   	 	return state.getCode() == RenderFarmInstance.RUNNING;
+   	 	return (state.getCode() == RenderFarmInstance.RUNNING) && (instance.getIp() != null);
 	}
 	
 	/**
@@ -237,16 +226,20 @@ public class RenderFarmInstanceManager {
 		return loadBalancing.getFitestMachine(this, request);
 	}
 
-	
+	/**
+	 * Create a render farm instance and wait for it to be up
+	 * @return RenderFarmInstance
+	 */
 	public RenderFarmInstance createReadyInstance(){
 		//TODO Tornar o metodo indestrutivel
-		final int polling_interval = 5000;
+		final int polling_interval = 7000;
 		try{
-			RenderFarmInstance instance =launchInstance();
+			RenderFarmInstance instance = launchInstance();
 			while(!isInstanceRunning(instance)){
 				Thread.sleep(polling_interval);
 			}
-			while(!new RenderFarmInstanceHealthCheck(instance.getIp()).isUp()){
+			RenderFarmInstanceHealthCheck rfihc = new RenderFarmInstanceHealthCheck(instance.getIp());
+			while(!rfihc.isUp()){
 				Thread.sleep(polling_interval);
 			}
 			return instance;
@@ -261,11 +254,9 @@ public class RenderFarmInstanceManager {
 	@Override
 	public String toString() {
 		String res = "============== ALL INSTANCES ================" + System.lineSeparator();
-		synchronized (currentInstances) {
-			res += "Number of Instance Running: " + currentInstances.size() + System.lineSeparator();
-			for(RenderFarmInstance instance: currentInstances) {
-				res += instance + System.lineSeparator();
-			}
+		res += "Number of Instance Running: " + currentInstances.size() + System.lineSeparator();
+		for(RenderFarmInstance instance: currentInstances) {
+			res += instance + System.lineSeparator();
 		}
 		res += "=========================================";
 		return res;

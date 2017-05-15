@@ -11,7 +11,7 @@ public class KeepAliveThread extends Thread {
 	/**
 	 * Time interval of pooling the Health Check.
 	 */
-	private final static int INTERVAL_OF_POLLING = 15 * 10000;
+	private final static int INTERVAL_OF_POLLING = 90 * 1000;
 	
 	/**
 	 * Handler thread connection.
@@ -45,11 +45,11 @@ public class KeepAliveThread extends Thread {
 	public void run() {
 		try {
 			while(true) {
-				System.out.println("[KEEPALIVE] U there?");
+				System.out.println("[KEEPALIVE]Alive?");
 				if(!instanceHealthCheck.isUp()) {
 					throw new InstanceIsDownException();
 				}
-				System.out.println("[KEEPALIVE] I'm here bro");
+				System.out.println("[KEEPALIVE]I'm alive!");
 				Thread.sleep(INTERVAL_OF_POLLING);
 				if(!keepPolling.get()) {
 					break;
@@ -57,7 +57,7 @@ public class KeepAliveThread extends Thread {
 
 			}
 		} catch(Exception e) {
-			System.out.println("[KEEPALIVE] Instance died probably");
+			System.out.println("[KEEPALIVE]Instance died probably");
 			handlerConnection.disconnect();		//Kill the handler connection to blow it.
 		}
 	}

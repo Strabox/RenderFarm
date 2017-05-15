@@ -38,7 +38,7 @@ public class BestAutoScaling extends AutoScaling {
 						break;
 					}
 				}
-				else {		//Minimum of instances already reached we can't remove more
+				else {		//Minimum of instances already reached we can't terminate more
 					break;
 				}
 			}

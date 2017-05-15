@@ -96,6 +96,16 @@ public class RenderFarmInstance implements Comparable<RenderFarmInstance> {
 	}
 	
 	/**
+	 * Attention:
+	 * Used to force the instance to not receive more requests independently of
+	 * was signed to or not (Used to stop dead instances from receiving requests
+	 * may have requests in the list but the machine is probably dead)
+	 */
+	public synchronized void forceReadyToBeTerminated() {
+		signalToBeTerminated.set(true);
+		goingToBeTerminated.set(true);
+	}
+	/**
 	 * Sign the instance to see if it is in state that can be terminated (0 requests processing).
 	 * @return
 	 */
