@@ -43,7 +43,7 @@ public final class BestLoadBalancing extends LoadBalancing {
 				Collections.sort(currentInstances);
 				previous_instance = currentInstances.get(0);	//Sort the list by load level in ASCENDING order
 				if(currentInstances.isEmpty() || ((currentInstances.get(0).getLoadLevel() + req.getWeight() > MAXIMUM_LOAD) 
-						&& (currentInstances.get(0).getLoadLevel() <= 2))) {
+						&& (currentInstances.get(0).getLoadLevel() > 2))) {
 					previous_instance = null;		
 				}
 				else {
@@ -59,11 +59,11 @@ public final class BestLoadBalancing extends LoadBalancing {
 							Thread.sleep(POLL_TIME_INTERVAL);
 						}
 					}
-					RenderFarmInstanceHealthCheck check = new RenderFarmInstanceHealthCheck(previous_instance.getIp());
+					/*RenderFarmInstanceHealthCheck check = new RenderFarmInstanceHealthCheck(previous_instance.getIp());
 					while(!check.isUp()) {
 						System.out.println("[BestLoadBalancing]Pinging instance " + previous_instance.getIp());
 						Thread.sleep(POLL_TIME_INTERVAL);
-					}
+					}*/
 					System.out.println("[Load Balancing]Load balancer algorithm ended!");
 					return previous_instance;	//TODO
 				}

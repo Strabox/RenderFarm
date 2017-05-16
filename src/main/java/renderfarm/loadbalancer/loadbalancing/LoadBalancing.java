@@ -68,7 +68,7 @@ public abstract class LoadBalancing {
 				req.getNormalizedWindow().getY(), req.getNormalizedWindow().getWidth(),
 				req.getNormalizedWindow().getHeight());
 		Metric fitestMetric = null;
-		float fitestMetricScaleFactor = 0, fitestMetricOverlappingArea = 0, fitestMetricBestFactor = -1;
+		float fitestFactorX = 0;
 		long metricBasicBlockAdjustedScaleAndArea = 0, metricStoreCountAdjustedScaleAndArea = 0,
 				metricLoadCountAdjustedScaleAndArea = 0;
 		//No metrics that have overlapping windows with ours
@@ -79,7 +79,14 @@ public abstract class LoadBalancing {
 		System.out.println("[EstimateRequestCost]Searching in " + metricsStored.size() + " metrics");
 		for(Metric metric : metricsStored) {
 			float overlappingArea = req.getNormalizedWindow().normalizedAreaOverlapping(metric.getNormalizedWindow());
-			float metricAreaMinusOverlappingArea = 1 - (metric.getNormalizedWindow().getArea() - overlappingArea);
+			float factorX = ((float) 0.7 * overlappingArea) + ((float)0.3 * (overlappingArea / (float) metric.getNormalizedWindow().getArea()));
+
+			if(factorX > fitestFactorX) {
+				fitestFactorX = factorX;
+				fitestMetric = metric;
+
+			}
+			/*
 			if(metricAreaMinusOverlappingArea < 0.00001) {			//All the metric area is inside the request
 				if(overlappingArea > fitestMetricOverlappingArea) {
 					fitestMetricBestFactor = -1;
@@ -103,15 +110,13 @@ public abstract class LoadBalancing {
 					fitestMetricScaleFactor = req.getScenePixelsResolution() / (float) metric.getScenePixelsResolution();
 					fitestMetric = metric;
 				}
-			}
+			}*/
 		}
-		if(fitestMetric == null) {
-			System.out.println("[EstimateRequestCost]Result: " + getDefaultRequestWeight(req.getwindowResolution()) + " [Default] no entries");
-			return getDefaultRequestWeight(req.getwindowResolution());
-		}
-		System.out.println("Fitest Metric: " + System.lineSeparator() + fitestMetric);
+		System.out.println("Fitest Metric: " + fitestMetric);
+		float fitestMetricOverlappingArea = req.getScenePixelsResolution() / (float) fitestMetric.getScenePixelsResolution();
 		float overlappingAreaDivideByMetricArea = fitestMetricOverlappingArea / (float) fitestMetric.getNormalizedWindow().getArea();
 		float overlappingAreaDividedByRequestArea = fitestMetricOverlappingArea / (float) req.getNormalizedWindow().getArea();
+		float fitestMetricScaleFactor = req.getScenePixelsResolution() / (float) fitestMetric.getScenePixelsResolution(); 
 		//Obtain the measures from the selected metric and multiply it by the resolution scale and
 		//multiply it by the ratio of overlapping in metric 
 		metricBasicBlockAdjustedScaleAndArea = (long) (fitestMetric.getMeasures().getBasicBlockCount() * fitestMetricScaleFactor

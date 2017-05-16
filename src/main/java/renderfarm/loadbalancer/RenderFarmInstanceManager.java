@@ -115,7 +115,7 @@ public class RenderFarmInstanceManager {
 	 * @return RendarfarmInstance local structure that was launched
 	 * @throws AmazonServiceException
 	 */
-	public RenderFarmInstance launchInstance() throws AmazonServiceException {
+	private RenderFarmInstance launchInstance() throws AmazonServiceException {
 		RunInstancesRequest runInstancesRequest = new RunInstancesRequest();
         runInstancesRequest.withImageId(RENDER_IMAGE_ID)
                            .withInstanceType(RENDER_INSTANCE_TYPE)
@@ -126,7 +126,7 @@ public class RenderFarmInstanceManager {
         RunInstancesResult runInstancesResult = ec2.runInstances(runInstancesRequest);
         List<Instance> instances = runInstancesResult.getReservation().getInstances();
         RenderFarmInstance instance = new RenderFarmInstance(instances.get(0).getInstanceId());
-        currentInstances.add(instance);
+        //currentInstances.add(instance);
         return instance;
 	}
 	
@@ -242,6 +242,7 @@ public class RenderFarmInstanceManager {
 			while(!rfihc.isUp()){
 				Thread.sleep(polling_interval);
 			}
+			currentInstances.add(instance);
 			return instance;
 		}
 		catch(Exception e){
