@@ -21,7 +21,7 @@ public class Request {
 	private final long windowResolution;
 	
 	/**
-	 * Connection to instance handling the request
+	 * Connection to instance handling the request (Used for fault detection)
 	 */
 	private HttpURLConnection connHandler;
 	

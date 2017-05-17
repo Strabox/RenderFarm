@@ -6,7 +6,6 @@ import renderfarm.dynamo.AmazonDynamoDB;
 import renderfarm.loadbalancer.RenderFarmInstance;
 import renderfarm.loadbalancer.RenderFarmInstanceManager;
 import renderfarm.loadbalancer.Request;
-import renderfarm.loadbalancer.exceptions.InstanceCantReceiveMoreRequestsException;
 import renderfarm.loadbalancer.exceptions.NoInstancesToHandleRequestException;
 import renderfarm.loadbalancer.exceptions.RedirectFailedException;
 import renderfarm.util.Metric;
@@ -39,7 +38,7 @@ public abstract class LoadBalancing {
 	 * @return Render farm instance selected to handle the request
 	 */
 	protected abstract RenderFarmInstance getFitestMachineAlgorithm(RenderFarmInstanceManager im,Request req)
-			throws NoInstancesToHandleRequestException;
+			throws RedirectFailedException;
 	
 	/**
 	 * Method to get the machine IP to handle the request
@@ -50,15 +49,10 @@ public abstract class LoadBalancing {
 	 * @throws RedirectFailedException 
 	 */
 	public RenderFarmInstance getFitestMachine(RenderFarmInstanceManager im,Request req) 
-			throws NoInstancesToHandleRequestException, RedirectFailedException {
+			throws RedirectFailedException {
 		RenderFarmInstance chosenInstance;
 		req.setWeight(estimateRequestComputationalCost(req));
 		chosenInstance = getFitestMachineAlgorithm(im, req);
-		try {
-			chosenInstance.addRequest(req);
-		} catch (InstanceCantReceiveMoreRequestsException e) {
-			throw new RedirectFailedException();
-		}
 		return chosenInstance;
 	}
 	

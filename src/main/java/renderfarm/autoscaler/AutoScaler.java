@@ -19,7 +19,7 @@ public class AutoScaler extends Thread {
 	/**
 	 * Interval between the auto scaling of Rendering Farm (Minutes).
 	 */
-	private static final int AUTO_SCALING_TIME_INTERVAL = 1 * (60 * 1000);
+	private static final int AUTO_SCALING_TIME_INTERVAL = 2 * (60 * 1000);
 	
 	/**
 	 * Implements our auto scaler logic.
@@ -39,7 +39,7 @@ public class AutoScaler extends Thread {
 	@Override
 	public void run() {
 		try{
-			instanceManager.launchInstance(INITIAL_NUMBER_OF_INSTANCES);
+			instanceManager.launchInstances(INITIAL_NUMBER_OF_INSTANCES);
 			System.out.println("[AUTOSCALER]Auto scaler launched. " + INITIAL_NUMBER_OF_INSTANCES + 
 					" instances launched");
 		} catch (AmazonServiceException ase) {
@@ -51,8 +51,7 @@ public class AutoScaler extends Thread {
 		while(true) {
 			try {
 				System.out.println("[AUTOSCALER]Auto scaler algorithm started...");
-				instanceManager.removeDeadRenderFarmInstances();
-	       	 	autoScaling.autoScale();
+	       	 	autoScaling.autoScaleAlgorithm();
 				System.out.println("[AUTOSCALER]Auto scaler algorithm ended.");
 				try {
 					Thread.sleep(AUTO_SCALING_TIME_INTERVAL);

@@ -94,7 +94,7 @@ public class RenderFarmInstanceManager {
 	 * @param nInstances Number of instances to launch
 	 * @throws AmazonServiceException
 	 */
-	public void launchInstance(int nInstances) throws AmazonServiceException {
+	public void launchInstances(int nInstances) throws AmazonServiceException {
 		RunInstancesRequest runInstancesRequest = new RunInstancesRequest();
         runInstancesRequest.withImageId(RENDER_IMAGE_ID)
                            .withInstanceType(RENDER_INSTANCE_TYPE)
@@ -126,7 +126,6 @@ public class RenderFarmInstanceManager {
         RunInstancesResult runInstancesResult = ec2.runInstances(runInstancesRequest);
         List<Instance> instances = runInstancesResult.getReservation().getInstances();
         RenderFarmInstance instance = new RenderFarmInstance(instances.get(0).getInstanceId());
-        //currentInstances.add(instance);
         return instance;
 	}
 	
@@ -134,45 +133,35 @@ public class RenderFarmInstanceManager {
 	 * Terminate instances that we no longer need
 	 * @param instancesIds List with all instances we want terminate
 	 */
-	public void terminateInstances(List<RenderFarmInstance> instancesToTerminate) {
-		List<String> goingToDie = new ArrayList<String>();
-		for(RenderFarmInstance instance : instancesToTerminate) {
+	public void terminateInstances(List<RenderFarmInstance> instancesToTryTerminate) {
+		List<String> instancesMarkedToTermiante = new ArrayList<String>();
+		for(RenderFarmInstance instance : instancesToTryTerminate) {
 			//if true instance now can't receive more requests
 			if(instance.readyToBeTerminated()) {
-				goingToDie.add(instance.getId());
+				System.out.println("[Terminate instances]Going to be terminated: " + instance.getIp());
+				instancesMarkedToTermiante.add(instance.getId());
 			}
 		}
-		TerminateInstancesRequest termInstanceReq = new TerminateInstancesRequest();
-		termInstanceReq.withInstanceIds(goingToDie);
-		TerminateInstancesResult result = ec2.terminateInstances(termInstanceReq);
-		List<InstanceStateChange> instancesState = result.getTerminatingInstances();
-		for(InstanceStateChange instanceState : instancesState) {
-			int currentState = instanceState.getCurrentState().getCode();
-			if(currentState == RenderFarmInstance.SHUTTING_DOWN ||
-				currentState == RenderFarmInstance.STOPPED ||
-				currentState == RenderFarmInstance.STOPPING ||
-				currentState == RenderFarmInstance.TERMINATED) {
-				removeRenderFarmInstance(instanceState.getInstanceId());
+		if(!instancesMarkedToTermiante.isEmpty()) {
+			TerminateInstancesRequest termInstanceReq = new TerminateInstancesRequest();
+			termInstanceReq.withInstanceIds(instancesMarkedToTermiante);
+			TerminateInstancesResult result = ec2.terminateInstances(termInstanceReq);
+			List<InstanceStateChange> instancesState = result.getTerminatingInstances();
+			for(InstanceStateChange instanceState : instancesState) {
+				int currentState = instanceState.getCurrentState().getCode();
+				if(currentState == RenderFarmInstance.SHUTTING_DOWN ||
+					currentState == RenderFarmInstance.STOPPED ||
+					currentState == RenderFarmInstance.STOPPING ||
+					currentState == RenderFarmInstance.TERMINATED) {
+					removeRenderFarmInstance(instanceState.getInstanceId());
+				}
+			}
+			for(RenderFarmInstance instance : instancesToTryTerminate) {
+				if(instance.readyToBeTerminated()) {
+					instance.abortAllRequest();
+				}
 			}
 		}
-	}
-	
-	/**
-	 * Remove all the instances from currentInstances that are dead
-	 * (Not responding)
-	 */
-	public void removeDeadRenderFarmInstances() {
-		DescribeInstancesRequest describeInstancesRequest = new DescribeInstancesRequest();
-   	 	describeInstancesRequest.getMaxResults();
-   	 	DescribeInstancesResult res = ec2.describeInstances(describeInstancesRequest);
-   	 	List<Instance> instances = res.getReservations().get(0).getInstances();
-   	 	for(Instance instance : instances) {
-   	 		if(instance.getState().getCode() == RenderFarmInstance.SHUTTING_DOWN ||
-   	 			instance.getState().getCode() == RenderFarmInstance.STOPPED ||
-   	 			instance.getState().getCode() == RenderFarmInstance.TERMINATED ) {
-   	 			removeRenderFarmInstance(instance.getInstanceId());
-   	 		}
-   	 	}
 	}
 	
 	/**
@@ -184,7 +173,7 @@ public class RenderFarmInstanceManager {
 			for(RenderFarmInstance instance : currentInstances) {
 				if(instance.getId().equals(instanceId)) {
 					currentInstances.remove(instance);
-					return;
+					break;
 				}
 			}
 		}
@@ -207,16 +196,16 @@ public class RenderFarmInstanceManager {
 	}
 	
 	
-	public List<RenderFarmInstance> getCurrentInstanceIp() {
-		List<RenderFarmInstance> ipList = new ArrayList<RenderFarmInstance>();
+	public List<RenderFarmInstance> getCurrentInstancesUnsync() {
+		List<RenderFarmInstance> instanceList = new ArrayList<RenderFarmInstance>();
 		synchronized (currentInstances) {
 			for(RenderFarmInstance instance : currentInstances) {
 				if(instance.getIp() != null) {
-					ipList.add(instance);
+					instanceList.add(instance);
 				}
 			}
 		}
-		return ipList;
+		return instanceList;
 	}
 	
 	/**
@@ -234,8 +223,7 @@ public class RenderFarmInstanceManager {
 	 * @throws NoInstancesToHandleRequestException 
 	 * @throws RedirectFailedException 
 	 */
-	public RenderFarmInstance getHandlerInstanceIP(Request request) 
-			throws NoInstancesToHandleRequestException, RedirectFailedException {
+	public RenderFarmInstance getHandlerInstanceIP(Request request) throws RedirectFailedException {
 		return loadBalancing.getFitestMachine(this, request);
 	}
 
@@ -243,7 +231,7 @@ public class RenderFarmInstanceManager {
 	 * Create a render farm instance and wait for it to be up
 	 * @return RenderFarmInstance
 	 */
-	public RenderFarmInstance createReadyInstance(){
+	public RenderFarmInstance createReadyInstance() {
 		//TODO Tornar o metodo indestrutivel
 		final int polling_interval = 7000;
 		try{
@@ -255,14 +243,12 @@ public class RenderFarmInstanceManager {
 			while(!rfihc.isUp()){
 				Thread.sleep(polling_interval);
 			}
-			currentInstances.add(instance);
 			return instance;
 		}
 		catch(Exception e){
-			System.out.println("[createReadyInstance] Threads problems");
+			System.out.println("[createReadyInstance]DANGER DANGER!!!");
 		}
 		return null;
-
 	}
 	
 	@Override

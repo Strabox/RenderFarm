@@ -29,7 +29,7 @@ public class BestAutoScaling extends AutoScaling {
 	}
 
 	@Override
-	public void autoScale() {
+	public void autoScaleAlgorithm() {
    	 	List<RenderFarmInstance> currentRenderFarmInstances = instanceManager.getCurrentRunningInstances();
    	 	List<RenderFarmInstance> terminateInstances = new ArrayList<RenderFarmInstance>();
    	 	synchronized (currentRenderFarmInstances) {

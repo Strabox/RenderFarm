@@ -161,7 +161,7 @@ public class RenderFarmInstance implements Comparable<RenderFarmInstance> {
 			return false;
 		}
 		RenderFarmInstance instance = (RenderFarmInstance) obj;
-		return instance.getId().equals(instance.getId());
+		return getId().equals(instance.getId());
 	}
 	
 	@Override

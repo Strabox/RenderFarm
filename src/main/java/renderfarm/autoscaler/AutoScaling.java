@@ -18,6 +18,6 @@ public abstract class AutoScaling {
 	/**
 	 * Method that implement the auto scaling algorithm. 
 	 */
-	public abstract void autoScale();
+	public abstract void autoScaleAlgorithm();
 	
 }

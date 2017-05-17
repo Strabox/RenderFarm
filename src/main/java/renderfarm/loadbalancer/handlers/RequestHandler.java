@@ -6,21 +6,17 @@ import java.net.*;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
-import renderfarm.loadbalancer.KeepAliveThread;
 import renderfarm.loadbalancer.RenderFarmInstance;
 import renderfarm.loadbalancer.RenderFarmInstanceManager;
 import renderfarm.loadbalancer.Request;
 import renderfarm.loadbalancer.exceptions.InvalidRenderingRequestException;
 import renderfarm.loadbalancer.exceptions.MaximumRedirectRetriesReachedException;
-import renderfarm.loadbalancer.exceptions.NoInstancesToHandleRequestException;
 import renderfarm.loadbalancer.exceptions.RedirectFailedException;
 import renderfarm.util.NormalizedWindow;
 import renderfarm.util.RenderFarmUtil;
 import renderfarm.util.SystemConfiguration;
 
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -109,9 +105,9 @@ public class RequestHandler implements HttpHandler {
 					e1.printStackTrace();
 				}
 			}
-			System.out.println("[Handler]SUCCESS answer to request!");
+			System.out.println("[Handler]SUCCESS Request processed with success!");
 		} catch(InvalidRenderingRequestException e) {
-			System.out.println("[Handler]Request with wrong format!");
+			System.out.println("[Handler]FAIL Request with wrong format!");
 			String response = "Bad request: " + http.getRequestURI().getQuery();
 			try{ 
 				http.sendResponseHeaders(RenderFarmUtil.HTTP_OK, response.length());
@@ -120,7 +116,7 @@ public class RequestHandler implements HttpHandler {
 				e.printStackTrace();
 			}
 		} catch(MaximumRedirectRetriesReachedException e) {
-			System.out.println("[Handler]Maximum retries reached!");
+			System.out.println("[Handler]FAIL Maximum retries reached!");
 			String response = "Retry later maximum tries reached: " + http.getRequestURI().getQuery();
 			try{ 
 				http.sendResponseHeaders(RenderFarmUtil.HTTP_OK, response.length());
@@ -129,7 +125,7 @@ public class RequestHandler implements HttpHandler {
 				e.printStackTrace();
 			}
 		} catch(Exception e) {
-			System.out.println("[Handler]Something wrong happened, retry later!");
+			System.out.println("[Handler]FAIL Something wrong happened, retry later!");
 			e.printStackTrace();
 			String response = "Something wrong happened, retry later: " + http.getRequestURI().getQuery();
 			try{ 
@@ -162,7 +158,6 @@ public class RequestHandler implements HttpHandler {
 		int bytesRead;
 		boolean retry = false;
 		InputStream in = null;
-		//KeepAliveThread keepAliveThread = null;
 		RenderFarmInstance selectedInstance = null;
 		try {
 			System.out.println("[Handler]Looking for best instance...");
@@ -175,11 +170,8 @@ public class RequestHandler implements HttpHandler {
 			connection.setConnectTimeout(CONNECTION_TIMEOUT);
 			connection.setReadTimeout(MAXIMUM_TIME_FOR_RENDERING);
 			connection.connect();
-			//keepAliveThread = new KeepAliveThread(connection, selectedInstance.getIp());
-			//keepAliveThread.start();
 			System.out.println("[Handler]Getting input stream...");
 			in = connection.getInputStream();
-			//keepAliveThread.terminate();
 			http.sendResponseHeaders(RenderFarmUtil.HTTP_OK, 0);
 			byte[] buffer = new byte[BUFFER_SIZE];
 			System.out.println("[Handler]Waiting for instance reply with image...");
@@ -191,24 +183,7 @@ public class RequestHandler implements HttpHandler {
 			System.out.println("[Handler]Instance \"probably\" died, going to redirect to other instance");
 			e.printStackTrace();
 			retry = true;
-			/*
-			if(selectedInstance != null) {
-				List<RenderFarmInstance> instanceToTerminate = new ArrayList<RenderFarmInstance>();
-				instanceToTerminate.add(selectedInstance);
-				selectedInstance.forceReadyToBeTerminated();
-				instanceManager.terminateInstances(instanceToTerminate);
-			}
-			*/
-		} catch(NoInstancesToHandleRequestException e) {
-			System.out.println("[Handler]No instance found by the laod balancer, going to retry...");
-			retry = true;
-			// WEIRD CASE: The load balancer didn't choose a instance.
 		} finally {	//Set all the resources free and retry the request if needed
-			/*
-			if(keepAliveThread != null) {
-				keepAliveThread.terminate();
-			}
-			*/
 			try {
 				if(out != null) {
 					out.close();

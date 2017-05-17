@@ -16,7 +16,7 @@ public class RenderFarmInstanceFaultDetector extends Thread {
 	/**
 	 * Time interval of pooling the Health Check.
 	 */
-	private final static int INTERVAL_OF_POLLING = 60 * 1000;
+	private final static int INTERVAL_OF_FAULT_DETECTION_POLLING = 60 * 1000;
 	
 	/**
 	 * Delay to start checking for faults
@@ -42,23 +42,21 @@ public class RenderFarmInstanceFaultDetector extends Thread {
 		while(true) {
 			try {
 				System.out.println("[FAULT DETECTOR]Fault detector started...");
-				List<RenderFarmInstance> instances = instanceManager.getCurrentInstanceIp();
+				List<RenderFarmInstance> instances = instanceManager.getCurrentInstancesUnsync();
 				List<RenderFarmInstance> instancesInFaultToTermiante = new ArrayList<RenderFarmInstance>();
 				for(RenderFarmInstance instance: instances) {
 					RenderFarmInstanceHealthCheck rfhc = new RenderFarmInstanceHealthCheck(instance.getIp());
-					if(!rfhc.isUp()) {		//Instance is dead send signal to all threads waiting for it
+					if(!rfhc.isUp()) {
+						//Instance Crashed
 						System.out.println("[FAULT DETECTOR]" + instance.getIp() + " crashed");
-						instance.abortAllRequest();
+						instance.forceReadyToBeTerminated();
 						instancesInFaultToTermiante.add(instance);
 					}
 				}
-				if(!instancesInFaultToTermiante.isEmpty()) {
-					instanceManager.terminateInstances(instancesInFaultToTermiante);
-				}
+				instanceManager.terminateInstances(instancesInFaultToTermiante);
 				System.out.println("[FAULT DETECTOR]Fault detector ended");
-				Thread.sleep(INTERVAL_OF_POLLING);
+				Thread.sleep(INTERVAL_OF_FAULT_DETECTION_POLLING);
 			} catch (Exception e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}

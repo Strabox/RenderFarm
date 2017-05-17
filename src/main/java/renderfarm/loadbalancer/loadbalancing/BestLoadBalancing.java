@@ -7,7 +7,9 @@ import renderfarm.dynamo.AmazonDynamoDB;
 import renderfarm.loadbalancer.RenderFarmInstance;
 import renderfarm.loadbalancer.RenderFarmInstanceManager;
 import renderfarm.loadbalancer.Request;
+import renderfarm.loadbalancer.exceptions.InstanceCantReceiveMoreRequestsException;
 import renderfarm.loadbalancer.exceptions.NoInstancesToHandleRequestException;
+import renderfarm.loadbalancer.exceptions.RedirectFailedException;
 
 /**
  * Class that implements our best load balancing algorithm
@@ -19,20 +21,22 @@ public final class BestLoadBalancing extends LoadBalancing {
 	/**
 	 * Poll time interval to remote requests to know about instance state
 	 */
-	private static final int POLL_TIME_INTERVAL = 8 * 1000;
+	private static final int POLL_TIME_INTERVAL = 10 * 1000;
 	
 	/**
 	 * Maximum load we want in an instance
 	 */
 	private static final int MAXIMUM_LOAD = 8;
 
+	private static final int MAXIMUM_TRIES_FOR_UP = 3;
+	
 	public BestLoadBalancing(AmazonDynamoDB dynamoDB) {
 		super(dynamoDB);
 	}
 	
 	@Override
 	public RenderFarmInstance getFitestMachineAlgorithm(RenderFarmInstanceManager im, Request req)
-			throws NoInstancesToHandleRequestException {
+			throws RedirectFailedException {
 		System.out.println("[Load Balancing]Load balancer algorithm started!");
 		RenderFarmInstance previous_instance = null;
 		try{
@@ -40,33 +44,53 @@ public final class BestLoadBalancing extends LoadBalancing {
 			System.out.println("[Load Balancing]Waiting for lock!");
 			synchronized(currentInstances) {
 				Collections.sort(currentInstances);				//Sort the list by load level in ASCENDING way
-				previous_instance = currentInstances.get(0);
 				if(currentInstances.isEmpty() || ((currentInstances.get(0).getLoadLevel() + req.getWeight() > MAXIMUM_LOAD) 
 						&& (currentInstances.get(0).getLoadLevel() > 2))) {
-					previous_instance = null;		
+					throw new NoInstancesToHandleRequestException();
 				}
 				else {
+					previous_instance = currentInstances.get(0);
 					for(RenderFarmInstance instance : currentInstances) {
 						if(instance.getLoadLevel() + req.getWeight() > MAXIMUM_LOAD) {
 							break;
 						}
 						previous_instance = instance;	
 					}
-					if(previous_instance.getIp() == null){
-						while(!im.isInstanceRunning(previous_instance)) {
-							System.out.println("[BestLoadBalancing]Waiting for UP at aws " + previous_instance.getIp());
-							Thread.sleep(POLL_TIME_INTERVAL);
-						}
+					try {
+						previous_instance.addRequest(req);
+					} catch (InstanceCantReceiveMoreRequestsException e) {
+						throw new RedirectFailedException();
 					}
-					System.out.println("[Load Balancing]Load balancer algorithm ended!");
-					return previous_instance;
+				}
+			}
+			if(previous_instance.getIp() == null){
+				int tries = 0;
+				while(!im.isInstanceRunning(previous_instance)) {
+					if(tries == MAXIMUM_TRIES_FOR_UP) {
+						throw new NoInstancesToHandleRequestException();
+					}
+					tries++;
+					try {
+						Thread.sleep(POLL_TIME_INTERVAL);
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
 				}
 			}
 			System.out.println("[Load Balancing]Load balancer algorithm ended!");
-			return im.createReadyInstance();
-		}
-		catch(Exception e) {
-			throw new NoInstancesToHandleRequestException();
+			return previous_instance;
+		} catch(NoInstancesToHandleRequestException e) {
+			//Load balancer couldn't found an instance so we create a new one.
+			RenderFarmInstance newInstance = im.createReadyInstance();
+			try {
+				newInstance.addRequest(req);
+			} catch (InstanceCantReceiveMoreRequestsException e1) {
+				throw new RedirectFailedException();
+			}
+			//Add the new instance to the running instances
+			im.getCurrentRunningInstances().add(newInstance);
+			System.out.println("[Load Balancing]Load balancer algorithm ended!");
+			return newInstance;
 		}
 	}
 }
