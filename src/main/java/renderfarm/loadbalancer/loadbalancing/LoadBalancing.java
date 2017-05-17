@@ -19,6 +19,10 @@ import renderfarm.util.Metric;
  */
 public abstract class LoadBalancing {
 
+	private static final float OVERLAPPING_AREA_WEIGHT = 0.7f;
+	
+	private static final float OVERLAPPING_AREA_PERCENTAGE_IN_METRIC_WEIGHT = 0.3f;
+	
 	/**
 	 * DynamoDB client
 	 */
@@ -64,66 +68,41 @@ public abstract class LoadBalancing {
 	 * @param req Request to be processed
 	 */
 	private int estimateRequestComputationalCost(Request req) {
-		 List<Metric> metricsStored = dynamoDB.getIntersectiveItems(req.getFile(), req.getNormalizedWindow().getX(),
+		 final List<Metric> metricsStored = dynamoDB.getIntersectiveItems(req.getFile(), req.getNormalizedWindow().getX(),
 				req.getNormalizedWindow().getY(), req.getNormalizedWindow().getWidth(),
 				req.getNormalizedWindow().getHeight());
 		Metric fitestMetric = null;
-		float fitestFactorX = 0;
-		long metricBasicBlockAdjustedScaleAndArea = 0, metricStoreCountAdjustedScaleAndArea = 0,
-				metricLoadCountAdjustedScaleAndArea = 0;
-		//No metrics that have overlapping windows with ours
-		if(metricsStored.isEmpty()) {
+		float fitestSelectionFactor = 0;
+		if(metricsStored.isEmpty()) {	//No metrics that have overlapping windows with ours
 			System.out.println("[EstimateRequestCost]Result: " + getDefaultRequestWeight(req.getwindowResolution()) + " [Default] no entries");
 			return getDefaultRequestWeight(req.getwindowResolution());
 		}
 		System.out.println("[EstimateRequestCost]Searching in " + metricsStored.size() + " metrics");
 		for(Metric metric : metricsStored) {
 			float overlappingArea = req.getNormalizedWindow().normalizedAreaOverlapping(metric.getNormalizedWindow());
-			float factorX = ((float) 0.7 * overlappingArea) + ((float)0.3 * (overlappingArea / (float) metric.getNormalizedWindow().getArea()));
-
-			if(factorX > fitestFactorX) {
-				fitestFactorX = factorX;
-				fitestMetric = metric;
-
+			if(overlappingArea < 0.00001) {
+				System.out.println("[EstimateRequestCost]ERROOOO returning metrics that don't overlapp");
 			}
-			/*
-			if(metricAreaMinusOverlappingArea < 0.00001) {			//All the metric area is inside the request
-				if(overlappingArea > fitestMetricOverlappingArea) {
-					fitestMetricBestFactor = -1;
-					fitestMetricOverlappingArea = overlappingArea;
-					fitestMetricScaleFactor = req.getScenePixelsResolution() / (float) metric.getScenePixelsResolution();
-					fitestMetric = metric;
-				}
-			} else {
-				float bestMetricFactor = overlappingArea / (float) metricAreaMinusOverlappingArea;
-				if(fitestMetricBestFactor == -1) {
-					if(overlappingArea > fitestMetricOverlappingArea) {
-						fitestMetricBestFactor = bestMetricFactor;
-						fitestMetricOverlappingArea = overlappingArea;
-						fitestMetricScaleFactor = req.getScenePixelsResolution() / (float) metric.getScenePixelsResolution();
-						fitestMetric = metric;
-					}
-				}
-				else if(bestMetricFactor > fitestMetricBestFactor) {
-					fitestMetricBestFactor = bestMetricFactor;
-					fitestMetricOverlappingArea = overlappingArea;
-					fitestMetricScaleFactor = req.getScenePixelsResolution() / (float) metric.getScenePixelsResolution();
-					fitestMetric = metric;
-				}
-			}*/
+			float selectionFactor = ((float) OVERLAPPING_AREA_WEIGHT * overlappingArea) + 
+					((float) OVERLAPPING_AREA_PERCENTAGE_IN_METRIC_WEIGHT * 
+					(overlappingArea / (float) metric.getNormalizedWindow().getArea()));
+			if(selectionFactor > fitestSelectionFactor) {
+				fitestSelectionFactor = selectionFactor;
+				fitestMetric = metric;
+			}
 		}
 		System.out.println("Fitest Metric: " + fitestMetric);
-		float fitestMetricOverlappingArea = req.getScenePixelsResolution() / (float) fitestMetric.getScenePixelsResolution();
+		float fitestMetricOverlappingArea = req.getNormalizedWindow().normalizedAreaOverlapping(fitestMetric.getNormalizedWindow());
 		float overlappingAreaDivideByMetricArea = fitestMetricOverlappingArea / (float) fitestMetric.getNormalizedWindow().getArea();
 		float overlappingAreaDividedByRequestArea = fitestMetricOverlappingArea / (float) req.getNormalizedWindow().getArea();
 		float fitestMetricScaleFactor = req.getScenePixelsResolution() / (float) fitestMetric.getScenePixelsResolution(); 
 		//Obtain the measures from the selected metric and multiply it by the resolution scale and
 		//multiply it by the ratio of overlapping in metric 
-		metricBasicBlockAdjustedScaleAndArea = (long) (fitestMetric.getMeasures().getBasicBlockCount() * fitestMetricScaleFactor
+		long metricBasicBlockAdjustedScaleAndArea = (long) (fitestMetric.getMeasures().getBasicBlockCount() * fitestMetricScaleFactor
 				* overlappingAreaDivideByMetricArea);
-		metricStoreCountAdjustedScaleAndArea = (long) (fitestMetric.getMeasures().getStorecount() * fitestMetricScaleFactor
+		long metricStoreCountAdjustedScaleAndArea = (long) (fitestMetric.getMeasures().getStorecount() * fitestMetricScaleFactor
 				* overlappingAreaDivideByMetricArea);
-		metricLoadCountAdjustedScaleAndArea = (long) (fitestMetric.getMeasures().getLoadcount() * fitestMetricScaleFactor 
+		long metricLoadCountAdjustedScaleAndArea = (long) (fitestMetric.getMeasures().getLoadcount() * fitestMetricScaleFactor 
 				* overlappingAreaDivideByMetricArea);
 		
 		int costLevelOfOvelappingAreaInMetric = getCostLevel(metricBasicBlockAdjustedScaleAndArea,
@@ -145,7 +124,8 @@ public abstract class LoadBalancing {
 	
 	/**
 	 * Empirical calculation of a request cost based on estimation of
-	 * various request examples (i.e: professor examples)
+	 * various request examples (i.e: professor examples) using the measures from the 
+	 * selected metric.
 	 * @param basicBlocks Basic blocks counts
 	 * @param loadCounts Load counts
 	 * @param storeCounts Store counts
@@ -173,16 +153,24 @@ public abstract class LoadBalancing {
 	
 	/**
 	 * Return the default weight for the slice of the request we have no idea about.
-	 * @return
+	 * Empirical calculated based on some examples including professor ones.
+	 * Rationale: More pixels to render heavier the request
+	 * @return [0,10]
 	 */
 	private int getDefaultRequestWeight(long windowResolution) {
-		if(windowResolution <= (500 * 500)) {
+		if(windowResolution <= (250 * 250)) {
+			return 1;
+		}
+		else if(windowResolution <= (500 * 500)) {
+			return 2;
+		}
+		else if(windowResolution <= (750 * 750)) {
 			return 3;
 		}
-		else if(windowResolution <= (1000 * 1000)) {
+		else if(windowResolution <= (1250 * 1250)) {
 			return 5;
 		}
-		else if(windowResolution <= (1500 * 1500)) {
+		else if(windowResolution <= (1750 * 1750)) {
 			return 6;
 		}
 		else if(windowResolution <= (2500 * 2500)) {

@@ -137,7 +137,7 @@ public class RenderFarmInstanceManager {
 	public void terminateInstances(List<RenderFarmInstance> instancesToTerminate) {
 		List<String> goingToDie = new ArrayList<String>();
 		for(RenderFarmInstance instance : instancesToTerminate) {
-			//if true instance now can't receive more requests and has 0 requests running!
+			//if true instance now can't receive more requests
 			if(instance.readyToBeTerminated()) {
 				goingToDie.add(instance.getId());
 			}
@@ -204,6 +204,19 @@ public class RenderFarmInstanceManager {
    	 		instance.setIp(res.getReservations().get(0).getInstances().get(0).getPublicIpAddress());
    	 	}
    	 	return (state.getCode() == RenderFarmInstance.RUNNING) && (instance.getIp() != null);
+	}
+	
+	
+	public List<RenderFarmInstance> getCurrentInstanceIp() {
+		List<RenderFarmInstance> ipList = new ArrayList<RenderFarmInstance>();
+		synchronized (currentInstances) {
+			for(RenderFarmInstance instance : currentInstances) {
+				if(instance.getIp() != null) {
+					ipList.add(instance);
+				}
+			}
+		}
+		return ipList;
 	}
 	
 	/**

@@ -49,6 +49,7 @@ public class LoadBalancerMain {
 			instanceManager = new RenderFarmInstanceManager(loadBalacing,false,null,null);
 		}
 		initAutoScaler();
+		initFaultDetector();
 		initLoadBalancer();
 	}
 	
@@ -61,11 +62,19 @@ public class LoadBalancerMain {
 	}
 	
 	/**
+	 * Start the auto scaler component
+	 */
+	private static void initFaultDetector() {
+		RenderFarmInstanceFaultDetector fd = new RenderFarmInstanceFaultDetector(instanceManager);
+		fd.start();
+	}
+	
+	/**
 	 * Start the load balancer web server to start receiving requests
 	 * @throws IOException
 	 */
 	private static void initLoadBalancer() {
-		final int THREAD_POOL_SIZE = 30;
+		final int THREAD_POOL_SIZE = 100;
 		try {
 			System.out.println("Initializing load balancing algorithm");
 			System.out.println("Initializing load balancer request handler");

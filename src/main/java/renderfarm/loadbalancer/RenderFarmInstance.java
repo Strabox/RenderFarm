@@ -105,6 +105,7 @@ public class RenderFarmInstance implements Comparable<RenderFarmInstance> {
 		signalToBeTerminated.set(true);
 		goingToBeTerminated.set(true);
 	}
+	
 	/**
 	 * Sign the instance to see if it is in state that can be terminated (0 requests processing).
 	 * @return
@@ -116,6 +117,18 @@ public class RenderFarmInstance implements Comparable<RenderFarmInstance> {
 		}
 		else {
 			return false;
+		}
+	}
+	
+	/**
+	 * Called when detect a fault in instance warn all the thread holding the requests
+	 */
+	public synchronized void abortAllRequest() {
+		forceReadyToBeTerminated();		//No more requests can be added
+		for(Request req : requestsInExecution) {
+			if(req.getConnHandler() != null) {
+				req.getConnHandler().disconnect();
+			}
 		}
 	}
 	

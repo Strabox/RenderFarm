@@ -15,7 +15,7 @@ public class RenderFarmInstanceHealthCheck {
 	/**
 	 * Timeout to establish the connection with the instance.
 	 */
-	private final static int CONNECTION_TIMEOUT = 10000;
+	private final static int CONNECTION_TIMEOUT = 5000;
 	
 	/**
 	 * Timeout waiting for the render farm Health Check reply.

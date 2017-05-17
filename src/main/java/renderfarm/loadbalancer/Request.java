@@ -1,5 +1,7 @@
 package renderfarm.loadbalancer;
 
+import java.net.HttpURLConnection;
+
 import renderfarm.util.NormalizedWindow;
 
 /**
@@ -18,6 +20,14 @@ public class Request {
 	
 	private final long windowResolution;
 	
+	/**
+	 * Connection to instance handling the request
+	 */
+	private HttpURLConnection connHandler;
+	
+	/**
+	 * Weight attributed to the request based on metrics gathered
+	 */
 	private int weight;
 	
 	public Request(String file,NormalizedWindow normalizedWindow,long scenePixelsResolution,
@@ -51,6 +61,14 @@ public class Request {
 	
 	public void setWeight(int weight) {
 		this.weight = weight;
+	}
+	
+	public HttpURLConnection getConnHandler() {
+		return this.connHandler;
+	}
+	
+	public void setConnHandler(HttpURLConnection conn) {
+		this.connHandler = conn;
 	}
 	
 	@Override

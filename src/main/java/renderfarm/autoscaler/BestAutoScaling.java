@@ -15,7 +15,12 @@ import renderfarm.loadbalancer.RenderFarmInstanceManager;
 public class BestAutoScaling extends AutoScaling {
 
 	/**
-	 * Minimum number of render farm instance we want always up
+	 * Maximum % o cluster instances that can die in one time 
+	 */
+	private final static float PERCENTAGE_OF_CLUSTER_SIZE_TO_DIE = 0.25f;
+	
+	/**
+	 * Minimum number of instances we want always up
 	 */
 	private final static int MINIMUM_INSTANCE_ALWAYS_UP = 2;
 	
@@ -28,9 +33,13 @@ public class BestAutoScaling extends AutoScaling {
    	 	List<RenderFarmInstance> currentRenderFarmInstances = instanceManager.getCurrentRunningInstances();
    	 	List<RenderFarmInstance> terminateInstances = new ArrayList<RenderFarmInstance>();
    	 	synchronized (currentRenderFarmInstances) {
+   	 		int currentClusterSize = currentRenderFarmInstances.size();
+   	 		int maximumNbInstancesCanBeTerminated = Math.round((float)currentClusterSize * PERCENTAGE_OF_CLUSTER_SIZE_TO_DIE);
    	 		Collections.sort(currentRenderFarmInstances);		//Sort the instances by ASCENDING load level
 			for(RenderFarmInstance instance : currentRenderFarmInstances) {
-				if((currentRenderFarmInstances.size() - terminateInstances.size()) > MINIMUM_INSTANCE_ALWAYS_UP) {
+				int nbInstancesReadyToBeTermianted = terminateInstances.size();
+				if((nbInstancesReadyToBeTermianted < maximumNbInstancesCanBeTerminated) && 
+						(currentClusterSize - nbInstancesReadyToBeTermianted) > MINIMUM_INSTANCE_ALWAYS_UP) {
 					if(instance.readyToSignToTerminate()) {
 						terminateInstances.add(instance);
 					}

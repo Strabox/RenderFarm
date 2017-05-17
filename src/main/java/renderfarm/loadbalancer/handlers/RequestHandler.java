@@ -51,7 +51,7 @@ public class RequestHandler implements HttpHandler {
 	/**
 	 * Time interval between each retry in a request 
 	 */
-	private static final int TIME_INTERVAL_TO_RETRY = 2000;
+	private static final int TIME_INTERVAL_TO_RETRY = 10 * 1000;
 	
 	/**
 	 * Maximum number of tries that load balancer will do.
@@ -162,7 +162,7 @@ public class RequestHandler implements HttpHandler {
 		int bytesRead;
 		boolean retry = false;
 		InputStream in = null;
-		KeepAliveThread keepAliveThread = null;
+		//KeepAliveThread keepAliveThread = null;
 		RenderFarmInstance selectedInstance = null;
 		try {
 			System.out.println("[Handler]Looking for best instance...");
@@ -171,14 +171,15 @@ public class RequestHandler implements HttpHandler {
 			URL url = new URL("http",selectedInstance.getIp(), SystemConfiguration.RENDER_INSTANCE_PORT, "/r.html?" + requestParams);
 			System.out.println("[Handler]Redirecting request to instance URL: " + url.toString());
 			HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+			request.setConnHandler(connection);
 			connection.setConnectTimeout(CONNECTION_TIMEOUT);
 			connection.setReadTimeout(MAXIMUM_TIME_FOR_RENDERING);
 			connection.connect();
-			keepAliveThread = new KeepAliveThread(connection, selectedInstance.getIp());
-			keepAliveThread.start();
+			//keepAliveThread = new KeepAliveThread(connection, selectedInstance.getIp());
+			//keepAliveThread.start();
 			System.out.println("[Handler]Getting input stream...");
 			in = connection.getInputStream();
-			keepAliveThread.terminate();
+			//keepAliveThread.terminate();
 			http.sendResponseHeaders(RenderFarmUtil.HTTP_OK, 0);
 			byte[] buffer = new byte[BUFFER_SIZE];
 			System.out.println("[Handler]Waiting for instance reply with image...");
@@ -190,20 +191,24 @@ public class RequestHandler implements HttpHandler {
 			System.out.println("[Handler]Instance \"probably\" died, going to redirect to other instance");
 			e.printStackTrace();
 			retry = true;
+			/*
 			if(selectedInstance != null) {
 				List<RenderFarmInstance> instanceToTerminate = new ArrayList<RenderFarmInstance>();
 				instanceToTerminate.add(selectedInstance);
 				selectedInstance.forceReadyToBeTerminated();
 				instanceManager.terminateInstances(instanceToTerminate);
 			}
+			*/
 		} catch(NoInstancesToHandleRequestException e) {
 			System.out.println("[Handler]No instance found by the laod balancer, going to retry...");
 			retry = true;
 			// WEIRD CASE: The load balancer didn't choose a instance.
 		} finally {	//Set all the resources free and retry the request if needed
+			/*
 			if(keepAliveThread != null) {
 				keepAliveThread.terminate();
 			}
+			*/
 			try {
 				if(out != null) {
 					out.close();
