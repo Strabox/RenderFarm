@@ -146,7 +146,8 @@ public abstract class LoadBalancing {
 	}
 	
 	/**
-	 * Return the default weight for the slice of the request we have no idea about.
+	 * Return the default weight for the slice of the request (or all the request)
+	 * that we have no idea about. 
 	 * Empirical calculated based on some examples including professor ones.
 	 * Rationale: More pixels to render heavier the request
 	 * @return [0,10]
