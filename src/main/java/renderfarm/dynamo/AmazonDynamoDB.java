@@ -137,8 +137,8 @@ public class AmazonDynamoDB{
   public List<Metric> getIntersectiveItems(String file_name, float window_x, float window_y,
 		  float window_width, float window_height){
         HashMap<String, Condition> scanFilter = new HashMap<String, Condition>();
-        Condition condition = new Condition()
-            .withComparisonOperator(ComparisonOperator.LE.toString())
+       /* Condition condition = new Condition()
+            .withComparisonOperator(ComparisonOperator.GE.toString())
             .withAttributeValueList(new AttributeValue().withN(Float.toString(window_x+window_width)));
         scanFilter.put(WINDOW_X, condition);
         Condition condition2 = new Condition()
@@ -152,13 +152,25 @@ public class AmazonDynamoDB{
         Condition condition4 = new Condition()
             .withComparisonOperator(ComparisonOperator.LE.toString())
             .withAttributeValueList(new AttributeValue().withN(Float.toString(window_x)));
+        scanFilter.put(WINDOW_X_PLUS_WINDOW_WIDTH, condition4);*/
+         Condition condition = new Condition()
+            .withComparisonOperator(ComparisonOperator.LE.toString())
+            .withAttributeValueList(new AttributeValue().withN(Float.toString(window_x)));
+        scanFilter.put(WINDOW_X, condition);
+        Condition condition2 = new Condition()
+            .withComparisonOperator(ComparisonOperator.LE.toString())
+            .withAttributeValueList(new AttributeValue().withN(Float.toString(window_y)));
+        scanFilter.put(WINDOW_Y, condition2);
+        Condition condition3 = new Condition()
+            .withComparisonOperator(ComparisonOperator.GE.toString())
+            .withAttributeValueList(new AttributeValue().withN(Float.toString(window_y)));
+        scanFilter.put(WINDOW_Y_PLUS_WINDOW_HEIGHT, condition3);
+        Condition condition4 = new Condition()
+            .withComparisonOperator(ComparisonOperator.GE.toString())
+            .withAttributeValueList(new AttributeValue().withN(Float.toString(window_x)));
         scanFilter.put(WINDOW_X_PLUS_WINDOW_WIDTH, condition4);
-        /*Condition condition5 = new Condition()
-            .withComparisonOperator(ComparisonOperator.EQ.toString())
-            .withAttributeValueList(new AttributeValue().withS(file_name));
-        scanFilter.put(TABLE_PARTION_KEY, condition5);*/
         ScanRequest scanRequest = new ScanRequest(TABLE_NAME).withScanFilter(scanFilter);
-        scanRequest.setConditionalOperator(ConditionalOperator.OR);
+        scanRequest.setConditionalOperator(ConditionalOperator.AND);
         ScanResult scanResult = dynamoDB.scan(scanRequest);
         List<Map<String,AttributeValue>> info = scanResult.getItems();
         List<Metric> result= new ArrayList<Metric>();
