@@ -43,7 +43,7 @@ public class RenderFarmInstanceManager {
 	private static final Regions AVAILABILITY_ZONE = Regions.US_WEST_2;
 	private static final String RENDER_INSTANCE_TYPE = "t2.micro";
 	private static final String SECURITY_GROUP = "cnv-ssh+http";
-	private static final String RENDER_IMAGE_ID = "ami-ff24409f";
+	private static final String RENDER_IMAGE_ID = "ami-44acca24";
 	private static final String RENDER_KEY_PAIR_NAME = "PROJECT_FINAL_KEY";
 	
 	//AmazonEC2 API Object (THREAD SAFE)
