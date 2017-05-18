@@ -57,10 +57,10 @@ public class InstrumentRaytracer {
 						int opcode=instr.getOpcode();
 						short instr_type = InstructionTable.InstructionTypeTable[opcode];
 						if (instr_type == InstructionTable.LOAD_INSTRUCTION) {
-							instr.addBefore("InstrumentRaytracer", "LSCount", new Integer(0));
+							//instr.addBefore("InstrumentRaytracer", "LSCount", new Integer(0));
 						}
 						else if (instr_type == InstructionTable.STORE_INSTRUCTION) {
-							instr.addBefore("InstrumentRaytracer", "LSCount", new Integer(1));
+							//instr.addBefore("InstrumentRaytracer", "LSCount", new Integer(1));
 						}
 						
 					}
@@ -80,36 +80,7 @@ public class InstrumentRaytracer {
     public static void requestFinished(String foo) throws IOException {
         Long threadID = Thread.currentThread().getId();
     	Metric requestMetrics = MultiThreadedWebServerMain.metricsGatherer.get(threadID);
-    	
-    	/*System.out.println(requestMetrics);
-    	
-		FileWriter fw =  new FileWriter(METRICS_LOG_FILENAME,true);
-		BufferedWriter bw = new BufferedWriter(fw);
-		
-		if(new File(METRICS_LOG_FILENAME).length() != 0)
-			bw.newLine();
-		
-		bw.write("Input_file: " + requestMetrics.getFileName());
-		bw.newLine();
-		bw.write("X: " + requestMetrics.getNormalizedWindow().getX());
-		bw.newLine();
-		bw.write("Y: "+ requestMetrics.getNormalizedWindow().getY());
-		bw.newLine();
-		bw.write("Window_width: "+ requestMetrics.getNormalizedWindow().getWidth());
-		bw.newLine();
-		bw.write("Window_height: " + requestMetrics.getNormalizedWindow().getHeight());
-		bw.newLine();
-		bw.write("Total_pixels_rendered: " + requestMetrics.getTotalPixelsRendered());
-		bw.newLine();
-		bw.write("Basic blocks: " + requestMetrics.getMeasures().getBasicBlockCount());
-		bw.newLine();
-		bw.write("Loads: " + requestMetrics.getMeasures().getLoadcount());
-		bw.newLine();
-		bw.write("Stores: " + requestMetrics.getMeasures().getStorecount());
-		bw.newLine();
-		bw.flush();
-		bw.close();
-		fw.close();*/
+    
 		MultiThreadedWebServerMain.dynamoDB.putItem(requestMetrics.getFileName(), requestMetrics.getNormalizedWindow().getX(),requestMetrics.getNormalizedWindow().getY(),
 			requestMetrics.getNormalizedWindow().getWidth(),requestMetrics.getNormalizedWindow().getHeight(), 
 			requestMetrics.getScenePixelsResolution(),requestMetrics.getMeasures().getBasicBlockCount(),

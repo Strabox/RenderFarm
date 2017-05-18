@@ -99,8 +99,7 @@ public abstract class LoadBalancing {
 		long metricLoadCountAdjustedScaleAndArea = (long) (fitestMetric.getMeasures().getLoadcount() * fitestMetricScaleFactor 
 				* overlappingAreaDivideByMetricArea);
 		
-		int costLevelOfOvelappingAreaInMetric = getCostLevel(metricBasicBlockAdjustedScaleAndArea,
-				metricLoadCountAdjustedScaleAndArea, metricStoreCountAdjustedScaleAndArea);
+		int costLevelOfOvelappingAreaInMetric = getCostLevel2(metricBasicBlockAdjustedScaleAndArea);
 		
 		System.out.println("[EstimateRequestCost]FitestMetricOvelappingArea: " + fitestMetricOverlappingArea);
 		System.out.println("[EstimateRequestCost]FitestMetricArea: " + fitestMetric.getNormalizedWindow().getArea());
@@ -114,6 +113,10 @@ public abstract class LoadBalancing {
 		int result = Math.round(finalWeight);
 		System.out.println("[EstimateRequestCost]Result: " + finalWeight + " => " + result);
 		return result;
+	}
+	
+	private int getCostLevel2(long basicBlocks) {
+		return Math.round((basicBlocks - 61007736)/(41782640027f - 61007736) * 10);
 	}
 	
 	/**
