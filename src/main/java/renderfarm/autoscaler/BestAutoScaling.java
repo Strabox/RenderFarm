@@ -51,10 +51,6 @@ public class BestAutoScaling extends AutoScaling {
 					break;
 				}
 			}
-			if(terminateInstances.size() < maximumNbInstancesCanBeTerminated){
-				//In this case we don't want terminate anything
-				return;
-			}
 		}
 		if(!terminateInstances.isEmpty()) {
 			instanceManager.terminateInstances(terminateInstances);
