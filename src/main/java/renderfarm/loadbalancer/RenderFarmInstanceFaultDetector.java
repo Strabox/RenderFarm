@@ -16,12 +16,12 @@ public class RenderFarmInstanceFaultDetector extends Thread {
 	/**
 	 * Time interval of pooling the Health Check.
 	 */
-	private final static int INTERVAL_OF_FAULT_DETECTION_POLLING = 60 * 1000;
+	public static int INTERVAL_OF_FAULT_DETECTION_POLLING;
 	
 	/**
 	 * Delay to start checking for faults
 	 */
-	private final static int DELAY_TO_START = 60 * 1000;
+	public static int DELAY_TO_START;
 	
 	/**
 	 * Render farm instance manager

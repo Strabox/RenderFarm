@@ -18,9 +18,9 @@ import renderfarm.util.Metric;
  */
 public abstract class LoadBalancing {
 
-	private static final float OVERLAPPING_AREA_WEIGHT = 0.7f;
+	public static float OVERLAPPING_AREA_WEIGHT;
 	
-	private static final float OVERLAPPING_AREA_PERCENTAGE_IN_METRIC_WEIGHT = 0.3f;
+	public static float OVERLAPPING_AREA_PERCENTAGE_IN_METRIC_WEIGHT;
 	
 	/**
 	 * DynamoDB client

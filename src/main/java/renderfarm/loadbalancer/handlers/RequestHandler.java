@@ -40,21 +40,21 @@ public class RequestHandler implements HttpHandler {
 	private static final int CONNECTION_TIMEOUT = 10000;
 	
 	/**
-	 * Maximum time for a rendering request.
+	 * Maximum time for a rendering request (3 Hours).
 	 */
 	private static final int MAXIMUM_TIME_FOR_RENDERING =  (3 * ((60 * 60) * 1000));
 	
 	/**
 	 * Time interval between each retry in a request 
 	 */
-	private static final int TIME_INTERVAL_TO_RETRY = 10 * 1000;
+	public static int TIME_INTERVAL_TO_RETRY;
 	
 	/**
 	 * Maximum number of tries that load balancer will do.
 	 * NOTE: This maximum will only occur if many Render Instances
 	 * fail during the requests.
 	 */
-	private static final int MAXIMUM_NUMBER_OF_RETRIES = 3;
+	public static int MAXIMUM_NUMBER_OF_RETRIES;
 
 	/**
 	 * Render farm instance manager (Thread Safe)

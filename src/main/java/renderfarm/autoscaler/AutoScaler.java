@@ -14,12 +14,12 @@ public class AutoScaler extends Thread {
 	/**
 	 * Initial number instance for our Rendering Farm.
 	 */
-	private static final int INITIAL_NUMBER_OF_INSTANCES = 1;
+	public static int INITIAL_NUMBER_OF_INSTANCES;
 	
 	/**
 	 * Interval between the auto scaling of Rendering Farm (Minutes).
 	 */
-	private static final int AUTO_SCALING_TIME_INTERVAL = 2 * (60 * 1000);
+	public static int AUTO_SCALING_TIME_INTERVAL;
 	
 	/**
 	 * Implements our auto scaler logic.

@@ -17,12 +17,12 @@ public class BestAutoScaling extends AutoScaling {
 	/**
 	 * Maximum % o cluster instances that can die in one time 
 	 */
-	private final static float PERCENTAGE_OF_CLUSTER_SIZE_TO_DIE = 0.25f;
+	public static float PERCENTAGE_OF_CLUSTER_SIZE_TO_DIE;
 	
 	/**
 	 * Minimum number of instances we want always up
 	 */
-	private final static int MINIMUM_INSTANCE_ALWAYS_UP = 2;
+	public static int MINIMUM_INSTANCE_ALWAYS_UP;
 	
 	public BestAutoScaling(RenderFarmInstanceManager im) {
 		super(im);

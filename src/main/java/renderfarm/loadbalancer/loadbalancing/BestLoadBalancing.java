@@ -26,9 +26,9 @@ public final class BestLoadBalancing extends LoadBalancing {
 	/**
 	 * Maximum load we want in an instance
 	 */
-	private static final int MAXIMUM_LOAD = 5;
+	public static int MAXIMUM_LOAD = 5;
 
-	private static final int MAXIMUM_TRIES_FOR_UP = 3;
+	public static int MAXIMUM_TRIES_FOR_UP = 3;
 	
 	public BestLoadBalancing(AmazonDynamoDB dynamoDB) {
 		super(dynamoDB);
