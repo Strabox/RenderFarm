@@ -38,9 +38,9 @@ public final class BestLoadBalancing extends LoadBalancing {
 	public RenderFarmInstance getFitestMachineAlgorithm(RenderFarmInstanceManager im, Request req)
 			throws RedirectFailedException {
 		System.out.println("[Load Balancing]Load balancer algorithm started!");
+		List<RenderFarmInstance> currentInstances = im.getCurrentRunningInstances();
 		RenderFarmInstance previous_instance = null;
 		try{
-			List<RenderFarmInstance> currentInstances = im.getCurrentRunningInstances();
 			System.out.println("[Load Balancing]Waiting for lock!");
 			synchronized(currentInstances) {
 				Collections.sort(currentInstances);				//Sort the list by load level in ASCENDING way
@@ -80,17 +80,22 @@ public final class BestLoadBalancing extends LoadBalancing {
 			System.out.println("[Load Balancing]Load balancer algorithm ended!");
 			return previous_instance;
 		} catch(NoInstancesToHandleRequestException e) {
-			//Load balancer couldn't found an instance so we create a new one.
-			RenderFarmInstance newInstance = im.createReadyInstance();
-			try {
-				newInstance.addRequest(req);
-			} catch (InstanceCantReceiveMoreRequestsException e1) {
-				throw new RedirectFailedException();
+			synchronized (currentInstances) {
+				//Load balancer couldn't found an instance so we create a new one.
+				RenderFarmInstance newInstance = im.createReadyInstance();
+				if(newInstance == null) {
+					throw new RedirectFailedException();
+				}
+				try {
+					newInstance.addRequest(req);
+				} catch (InstanceCantReceiveMoreRequestsException e1) {
+					throw new RedirectFailedException();
+				}
+				//Add the new instance to the running instances
+				im.getCurrentRunningInstances().add(newInstance);
+				System.out.println("[Load Balancing]Load balancer algorithm ended!");
+				return newInstance;
 			}
-			//Add the new instance to the running instances
-			im.getCurrentRunningInstances().add(newInstance);
-			System.out.println("[Load Balancing]Load balancer algorithm ended!");
-			return newInstance;
 		}
 	}
 }

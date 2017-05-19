@@ -94,10 +94,6 @@ public abstract class LoadBalancing {
 		//multiply it by the ratio of overlapping in metric 
 		long metricBasicBlockAdjustedScaleAndArea = (long) (fitestMetric.getMeasures().getBasicBlockCount() * fitestMetricScaleFactor
 				* overlappingAreaDivideByMetricArea);
-		long metricStoreCountAdjustedScaleAndArea = (long) (fitestMetric.getMeasures().getStorecount() * fitestMetricScaleFactor
-				* overlappingAreaDivideByMetricArea);
-		long metricLoadCountAdjustedScaleAndArea = (long) (fitestMetric.getMeasures().getLoadcount() * fitestMetricScaleFactor 
-				* overlappingAreaDivideByMetricArea);
 		
 		int costLevelOfOvelappingAreaInMetric = getCostLevel2(metricBasicBlockAdjustedScaleAndArea);
 		
@@ -115,6 +111,13 @@ public abstract class LoadBalancing {
 		return result;
 	}
 	
+	/**
+	 * Empirical calculation of a request cost based on estimation of
+	 * various request examples (i.e: professor examples) using the measures from the 
+	 * selected metric.
+	 * @param basicBlocks Basic blocks counts
+	 * @return [0,10] depending on the weight of the request that generated the inputs
+	 */
 	private int getCostLevel2(long basicBlocks) {
 		int res = Math.round((basicBlocks - 61007736)/(41782640027f - 61007736) * 10);
 		if(res < 0) {
@@ -135,6 +138,7 @@ public abstract class LoadBalancing {
 	 * @param storeCounts Store counts
 	 * @return [0,10] depending on the weight of the request that generated the inputs
 	 */
+	@Deprecated
 	private int getCostLevel(long basicBlocks, long loadCounts, long storeCounts) {
 		final long basicBlockReference = 42000000000L;
 		final long storeCountReference = 20000000000L;

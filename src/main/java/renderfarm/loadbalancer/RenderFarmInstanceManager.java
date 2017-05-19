@@ -232,16 +232,26 @@ public class RenderFarmInstanceManager {
 	 * @return RenderFarmInstance
 	 */
 	public RenderFarmInstance createReadyInstance() {
-		//TODO Tornar o metodo indestrutivel
-		final int polling_interval = 7000;
+		final int polling_interval_running = 10 * 1000;
+		final int polling_interval_ping = 30 * 1000;
+		int tries = 0;
 		try{
 			RenderFarmInstance instance = launchInstance();
 			while(!isInstanceRunning(instance)){
-				Thread.sleep(polling_interval);
+				if(tries == 10) {
+					return null;
+				}
+				tries++;
+				Thread.sleep(polling_interval_running);
 			}
+			tries = 0;
 			RenderFarmInstanceHealthCheck rfihc = new RenderFarmInstanceHealthCheck(instance.getIp());
 			while(!rfihc.isUp()){
-				Thread.sleep(polling_interval);
+				if(tries == 6) {
+					return null;
+				}
+				tries++;
+				Thread.sleep(polling_interval_ping);
 			}
 			return instance;
 		}
