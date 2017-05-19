@@ -120,8 +120,8 @@ public abstract class LoadBalancing {
 	 */
 	private int getCostLevel2(long basicBlocks) {
 		int res = Math.round((basicBlocks - 61007736)/(41782640027f - 61007736) * 10);
-		if(res < 0) {
-			res = 0;
+		if(res <= 0) {
+			res = 1;
 		}
 		else if(res > 10) {
 			res = 10;
